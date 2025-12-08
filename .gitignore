@@ -41,3 +41,51 @@ app-example
 # generated native folders
 /ios
 /android
+
+
+############################
+#  DODANE – FIREBASE
+
+
+# Firebase logs & cache
+firebase-debug.log*
+.firestore/
+.storage/
+
+# Firebase emulator data
+firebase-export/
+.emulator/
+
+# Firebase local config (secrets)
+.firebaserc.local
+runtimeconfig.json
+
+
+
+#  DODANE – CLOUD FUNCTIONS
+
+
+# Compiled TS output
+functions/lib/
+
+# Functions dependencies
+functions/node_modules/
+
+
+
+#  DODANE – ENV & SECRETS
+
+
+# Main env files (IMPORTANT)
+.env
+.env.*
+
+
+#  DODANE – IDE / TEMP
+
+
+.vscode/
+.idea/
+tmp/
+temp/
+generated/
