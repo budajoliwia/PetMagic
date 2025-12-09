@@ -1,10 +1,12 @@
+import { useRouter } from "expo-router";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import React, { useState } from "react";
 import { ActivityIndicator, Alert, Button, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth, db } from "../src/firebase";
 
-export default function HomeScreen() {
+export default function AuthScreen() {
+  const router = useRouter();
   const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -40,7 +42,7 @@ export default function HomeScreen() {
 
       console.log("Registered & saved:", userCredential.user.email);
       Alert.alert("Success", "Registered successfully!");
-      // Optional: Switch to login or navigate
+      router.replace("/home");
     } catch (error: any) {
       console.error(error);
       let errorMessage = "An unknown error occurred";
@@ -68,6 +70,7 @@ export default function HomeScreen() {
       const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, password);
       console.log("Logged in:", userCredential.user.email);
       Alert.alert("Success", "Logged in successfully!");
+      router.replace("/home");
     } catch (error) {
       console.error(error);
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
