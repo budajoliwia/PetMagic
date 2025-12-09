@@ -1,9 +1,11 @@
 import { initializeApp } from "firebase/app";
 import { connectAuthEmulator, getAuth } from "firebase/auth";
-import { connectFirestoreEmulator, getFirestore } from "firebase/firestore";
-import { connectStorageEmulator, getStorage } from "firebase/storage";
+import {
+    connectFirestoreEmulator,
+    getFirestore,
+} from "firebase/firestore";
 
-// Twoja konfiguracja z Firebase Console
+// Konfiguracja Firebase (z Firebase Console)
 const firebaseConfig = {
   apiKey: "TWÓJ_API_KEY",
   authDomain: "petmagicai.firebaseapp.com",
@@ -14,34 +16,29 @@ const firebaseConfig = {
   measurementId: "G-4X4NBN89TH",
 };
 
-// 1. Inicjalizacja appki Firebase
+// Inicjalizacja aplikacji Firebase
 const app = initializeApp(firebaseConfig);
 
+// SDK
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const storage = getStorage(app);
 
-// 2. Przełącznik: emulatory vs chmura
-// Na webie chcemy korzystać z emulatorów → ustaw true
+
+// EMULATORY – tylko Auth + Firestore
+
+
 const USE_EMULATORS = true;
 
 if (USE_EMULATORS) {
-  const emulatorHost = "localhost"; // web działa na tym samym komputerze co emulatory
+  const EMULATOR_HOST = "localhost";
 
-  console.log(`🔌 Connecting to Firebase Emulators on ${emulatorHost}...`);
+  console.log("Connecting to Firebase Emulators...");
 
-  try {
-    // Auth emulator – port 9099
-    connectAuthEmulator(auth, `http://${emulatorHost}:9099`, {
-      disableWarnings: true,
-    });
-    // Firestore emulator – port 8080
-    connectFirestoreEmulator(db, emulatorHost, 8080);
-    // Storage emulator – port 9199
-    connectStorageEmulator(storage, emulatorHost, 9199);
+  // Auth Emulator (9099)
+  connectAuthEmulator(auth, `http://${EMULATOR_HOST}:9099`, {
+    disableWarnings: true,
+  });
 
-    console.log("Connected to Firebase Emulators");
-  } catch (error) {
-    console.error("Error connecting to emulators:", error);
-  }
+  // Firestore Emulator (8080)
+  connectFirestoreEmulator(db, EMULATOR_HOST, 8080);
 }
