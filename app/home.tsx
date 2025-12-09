@@ -1,5 +1,7 @@
 import { useRouter } from "expo-router";
-import { ScrollView, Text, View, Pressable } from "react-native";
+import { signOut } from "firebase/auth";
+import { ScrollView, Text, View, Pressable, Alert } from "react-native";
+import { auth } from "../src/firebase";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -8,6 +10,18 @@ export default function HomeScreen() {
   const dailyLimit = 5;
   const usedToday = 1;
   const remaining = Math.max(dailyLimit - usedToday, 0);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.replace("/");
+    } catch (error) {
+      // Prosty komunikat błędu – w przyszłości można to rozbudować
+      // eslint-disable-next-line no-console
+      console.error("Logout error", error);
+      Alert.alert("Błąd", "Nie udało się wylogować. Spróbuj ponownie.");
+    }
+  };
 
   return (
     <ScrollView
@@ -18,20 +32,44 @@ export default function HomeScreen() {
       }}
     >
       <View style={{ gap: 24 }}>
-        <View>
-          <Text
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <View>
+            <Text
+              style={{
+                color: "white",
+                fontSize: 28,
+                fontWeight: "700",
+                marginBottom: 4,
+              }}
+            >
+              PetMagicAI 🐾
+            </Text>
+            <Text style={{ color: "#9ca3af", fontSize: 16 }}>
+              Zamień zdjęcia swojego pupila w magiczne grafiki.
+            </Text>
+          </View>
+
+          <Pressable
+            onPress={handleLogout}
             style={{
-              color: "white",
-              fontSize: 28,
-              fontWeight: "700",
-              marginBottom: 4,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              borderRadius: 999,
+              borderWidth: 1,
+              borderColor: "#4b5563",
+              backgroundColor: "transparent",
             }}
           >
-            PetMagicAI 🐾
-          </Text>
-          <Text style={{ color: "#9ca3af", fontSize: 16 }}>
-            Zamień zdjęcia swojego pupila w magiczne grafiki.
-          </Text>
+            <Text style={{ color: "#e5e7eb", fontSize: 12, fontWeight: "500" }}>
+              Wyloguj
+            </Text>
+          </Pressable>
         </View>
 
         {/* Karta dziennego limitu */}
@@ -135,5 +173,4 @@ export default function HomeScreen() {
     </ScrollView>
   );
 }
-
 
