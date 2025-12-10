@@ -1,14 +1,53 @@
 import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
-import { ScrollView, Text, View, Pressable, Alert } from "react-native";
-import { auth } from "../src/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import React, { useEffect, useState } from "react";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { auth, db } from "../src/firebase";
+import { UserDoc } from "../src/models";
 
 export default function HomeScreen() {
   const router = useRouter();
+  const [userDoc, setUserDoc] = useState<UserDoc | null>(null);
+  const [isFetchingUserDoc, setIsFetchingUserDoc] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    const currentUser = auth.currentUser;
+
+    if (!currentUser) {
+      router.replace("/");
+      setIsFetchingUserDoc(false);
+      return;
+    }
+
+    const fetchUserDoc = async () => {
+      try {
+        const snapshot = await getDoc(doc(db, "users", currentUser.uid));
+        if (snapshot.exists() && isMounted) {
+          setUserDoc(snapshot.data() as UserDoc);
+        } else if (!snapshot.exists()) {
+          console.warn("User document missing for", currentUser.uid);
+        }
+      } catch (error) {
+        console.error("Failed to load user document", error);
+      } finally {
+        if (isMounted) {
+          setIsFetchingUserDoc(false);
+        }
+      }
+    };
+
+    fetchUserDoc();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
 
   // Placeholder values – docelowo pobierane z Firestore (users/{uid})
-  const dailyLimit = 5;
-  const usedToday = 1;
+  const dailyLimit = userDoc?.dailyLimit ?? 0;
+  const usedToday = userDoc?.usedToday ?? 0;
   const remaining = Math.max(dailyLimit - usedToday, 0);
 
   const handleLogout = async () => {
@@ -73,31 +112,41 @@ export default function HomeScreen() {
         </View>
 
         {/* Karta dziennego limitu */}
-        <View
-          style={{
-            backgroundColor: "#0f172a",
-            borderRadius: 16,
-            padding: 20,
-            gap: 8,
-          }}
-        >
-          <Text
+          <View
             style={{
-              color: "#e5e7eb",
-              fontSize: 16,
-              fontWeight: "600",
+              backgroundColor: "#0f172a",
+              borderRadius: 16,
+              padding: 20,
+              gap: 8,
             }}
           >
-            Dzisiejszy limit
-          </Text>
-          <Text style={{ color: "white", fontSize: 28, fontWeight: "700" }}>
-            {remaining} / {dailyLimit}
-          </Text>
-          <Text style={{ color: "#9ca3af", fontSize: 13 }}>
-            Na razie wartości są przykładowe – później pobierzemy je z
-            Firestore.
-          </Text>
-        </View>
+            <Text
+              style={{
+                color: "#e5e7eb",
+                fontSize: 16,
+                fontWeight: "600",
+              }}
+            >
+              Dzisiejszy limit
+            </Text>
+            {isFetchingUserDoc ? (
+              <Text style={{ color: "#9ca3af", fontSize: 14 }}>
+                Ładowanie limitu...
+              </Text>
+            ) : (
+              <>
+                <Text style={{ color: "white", fontSize: 22, fontWeight: "700" }}>
+                  Dzienny limit: {dailyLimit}
+                </Text>
+                <Text style={{ color: "#9ca3af", fontSize: 16 }}>
+                  Zużyto dziś: {usedToday}
+                </Text>
+                <Text style={{ color: "#22c55e", fontSize: 16, fontWeight: "600" }}>
+                  Zostało: {remaining}
+                </Text>
+              </>
+            )}
+          </View>
 
         {/* Główne CTA */}
         <View style={{ gap: 12 }}>

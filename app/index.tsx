@@ -4,6 +4,7 @@ import { doc, setDoc } from "firebase/firestore";
 import React, { useState } from "react";
 import { ActivityIndicator, Alert, Button, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth, db } from "../src/firebase";
+import { UserDoc } from "../src/models";
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -31,14 +32,15 @@ export default function AuthScreen() {
       const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
       
       // Create user document in Firestore
-      await setDoc(doc(db, "users", userCredential.user.uid), {
+      const userDoc: UserDoc = {
         email: trimmedEmail,
         createdAt: new Date().toISOString(),
         role: "user",
         dailyLimit: 5,
         usedToday: 0,
-        lastUsageDate: null
-      });
+        lastUsageDate: null,
+      };
+      await setDoc(doc(db, "users", userCredential.user.uid), userDoc);
 
       console.log("Registered & saved:", userCredential.user.email);
       Alert.alert("Success", "Registered successfully!");
