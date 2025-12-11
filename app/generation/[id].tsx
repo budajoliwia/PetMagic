@@ -1,15 +1,62 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../src/firebase";
+import { GenerationDoc } from "../../src/models";
 
 export default function GenerationDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const [isFavorite, setIsFavorite] = useState(false);
 
-  // Docelowo dane będą pobierane z generations/{generationId}
-  const mockStyle = "Cartoon";
-  const mockCreatedAt = "Dziś, 12:34";
+  const [generation, setGeneration] = useState<GenerationDoc | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadGeneration = async () => {
+      if (!id || typeof id !== "string") {
+        setError("Brak identyfikatora generacji.");
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const ref = doc(db, "generations", id);
+        const snapshot = await getDoc(ref);
+        if (!snapshot.exists()) {
+          setError("Generacja nie istnieje.");
+          setIsLoading(false);
+          return;
+        }
+
+        const data = snapshot.data() as GenerationDoc;
+        setGeneration(data);
+        setIsFavorite(!!data.isFavorite);
+        setIsLoading(false);
+      } catch (err) {
+        console.error("Failed to load generation", err);
+        setError("Nie udało się pobrać danych generacji.");
+        setIsLoading(false);
+      }
+    };
+
+    loadGeneration();
+  }, [id]);
+
+  const formatCreatedAt = () => {
+    if (!generation?.createdAt) return "";
+    try {
+      return generation.createdAt.toDate().toLocaleString();
+    } catch {
+      return "";
+    }
+  };
+
+  const handleStubAction = (label: string) => {
+    Alert.alert("Wkrótce", `Akcja „${label}” będzie dostępna w kolejnej wersji.`);
+  };
 
   return (
     <ScrollView
@@ -83,19 +130,32 @@ export default function GenerationDetailScreen() {
       <View style={{ gap: 4, marginBottom: 24 }}>
         <Text style={{ color: "#e5e7eb", fontSize: 14 }}>
           ID generacji:{" "}
-          <Text style={{ color: "#9ca3af" }}>{id ?? "brak"}</Text>
+          <Text style={{ color: "#9ca3af" }}>
+            {typeof id === "string" ? id : "brak"}
+          </Text>
         </Text>
         <Text style={{ color: "#e5e7eb", fontSize: 14 }}>
-          Styl: <Text style={{ color: "#a5b4fc" }}>{mockStyle}</Text>
+          Styl:{" "}
+          <Text style={{ color: "#a5b4fc" }}>
+            {generation?.style ?? "nieznany"}
+          </Text>
         </Text>
         <Text style={{ color: "#e5e7eb", fontSize: 14 }}>
-          Data: <Text style={{ color: "#9ca3af" }}>{mockCreatedAt}</Text>
+          Data:{" "}
+          <Text style={{ color: "#9ca3af" }}>{formatCreatedAt()}</Text>
         </Text>
+        {generation?.jobId && (
+          <Text style={{ color: "#e5e7eb", fontSize: 14 }}>
+            Job ID:{" "}
+            <Text style={{ color: "#9ca3af" }}>{generation.jobId}</Text>
+          </Text>
+        )}
       </View>
 
       {/* Akcje */}
       <View style={{ gap: 12, marginBottom: 16 }}>
         <Pressable
+          onPress={() => handleStubAction("Pobierz / Zapisz")}
           style={{
             paddingVertical: 14,
             borderRadius: 999,
@@ -115,6 +175,7 @@ export default function GenerationDetailScreen() {
         </Pressable>
 
         <Pressable
+          onPress={() => handleStubAction("Udostępnij")}
           style={{
             paddingVertical: 14,
             borderRadius: 999,
@@ -158,13 +219,19 @@ export default function GenerationDetailScreen() {
         </Pressable>
       </View>
 
-      <Text style={{ color: "#6b7280", fontSize: 12 }}>
-        W przyszłości ten ekran pobierze dane z{" "}
-        <Text style={{ fontWeight: "600" }}>generations/{id}</Text> i
-        wyświetli prawdziwy obrazek na podstawie outputImagePath.
+      {error && (
+        <Text style={{ color: "#fecaca", fontSize: 12, marginTop: 8 }}>
+          {error}
+        </Text>
+      )}
+
+      <Text style={{ color: "#6b7280", fontSize: 12, marginTop: 8 }}>
+        Dane pochodzą z{" "}
+        <Text style={{ fontWeight: "600" }}>generations/{id}</Text>. W
+        przyszłości ten ekran wyświetli prawdziwy obrazek na podstawie
+        outputImagePath.
       </Text>
     </ScrollView>
   );
 }
-
 

@@ -1,12 +1,59 @@
 import { useRouter } from "expo-router";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useState } from "react";
-import { ScrollView, Text, View, Pressable } from "react-native";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { auth, db } from "../src/firebase";
+import { JobDoc } from "../src/models";
 
 const STYLES = ["Sticker", "Cartoon", "Oil Painting", "Line Art"] as const;
 
 export default function NewGenerationScreen() {
   const router = useRouter();
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleGenerate = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      Alert.alert("Error", "Please login to generate a new generation.");
+      return;
+    }
+    if(!selectedStyle){
+      Alert.alert("Choose a style to generate a new generation.");
+      return;
+    }
+
+    if (isSubmitting) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      const jobPayload: Omit<JobDoc, "resultGenerationId"> = {
+        userId: currentUser.uid,
+        type: "GENERATE_STICKER",
+        inputImagePath: `input/${currentUser.uid}/fake-placeholder.jpg`, // na razie fake
+        style: selectedStyle,
+        status: "processing",
+        // na kliencie używamy serverTimestamp – typowo rzutujemy do any
+        createdAt: serverTimestamp() as any,
+        updatedAt: serverTimestamp() as any,
+      };
+
+      const jobRef = await addDoc(collection(db, "jobs"), jobPayload);
+
+      router.push({ pathname: "/job-status", params: { jobId: jobRef.id } });
+    } catch (error) {
+      console.error("Failed to create job", error);
+      Alert.alert(
+        "Error",
+        "Failed to create job. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <ScrollView
@@ -141,14 +188,15 @@ export default function NewGenerationScreen() {
           Wybrany styl: {selectedStyle ?? "brak (wybierz powyżej)"}
         </Text>
         <Pressable
-          onPress={() => router.push("/job-status")}
+          onPress={handleGenerate}
           style={{
             paddingVertical: 16,
             borderRadius: 999,
             backgroundColor: "#22c55e",
             alignItems: "center",
-            opacity: selectedStyle ? 1 : 0.8,
+            opacity: selectedStyle && !isSubmitting ? 1 : 0.8,
           }}
+          disabled={!selectedStyle || isSubmitting}
         >
           <Text
             style={{
