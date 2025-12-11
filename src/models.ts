@@ -1,46 +1,49 @@
-// users/{uid}
-export interface UserDoc{
-    email:string;
-    createdAt: string;
-    role: "user" | "admin";
+import { Timestamp } from "firebase/firestore";
 
-    dailyLimit:number;
-    usedToday: number;
-    lastUsageDate: string | null;
+// users/{uid}
+export interface UserDoc {
+  email: string;
+  createdAt: string;
+  role: "user" | "admin";
+
+  dailyLimit: number;
+  usedToday: number;
+  lastUsageDate: string | null;
 }
 
 // jobs/{jobsId}
-type JobStatus="queued" | "processing" | "done" | "error";
+export type JobStatus = "queued" | "processing" | "done" | "error";
 
-interface JobDoc {
-    userId: string;
-    type:"GENERATE_STICKER"; 
+export interface JobDoc {
+  userId: string;
+  type: "GENERATE_STICKER";
 
-    inputImagePath: string;
-    style: string;
+  inputImagePath: string;
+  style: string;
 
-    status:JobStatus;
-    errorCode?: string; 
-    errorMessage?:string;
+  status: JobStatus;
+  errorCode?: string;
+  errorMessage?: string;
 
-    resultGenerationId?: string;
+  resultGenerationId?: string;
 
-    createdAt: FirebaseFirestore.Timestamp;
-    updatedAt: FirebaseFirestore.Timestamp;
+  // Używamy Timestamp z firebase/firestore; przy zapisie korzystamy z serverTimestamp()
+  createdAt: Timestamp | null;
+  updatedAt: Timestamp | null;
 }
 
-//generations/{generationId}
-interface GenerationDoc {
-    userId: string;
-    jobId: string;
+// generations/{generationId}
+export interface GenerationDoc {
+  userId: string;
+  jobId: string;
 
-    inputImagePath: string;
-    outputImagePath:string;
+  inputImagePath: string;
+  outputImagePath: string;
 
-    style:string;
-    createdAt: FirebaseFirestore.Timestamp;
+  style: string;
+  // Analogicznie jak w JobDoc - pole ustawiane przez serverTimestamp()
+  createdAt: Timestamp | null;
 
-    title?: string;
-    isFavorite?: boolean;
+  title?: string;
+  isFavorite?: boolean;
 }
-

@@ -1,38 +1,153 @@
 import { useRouter } from "expo-router";
-import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
+import {
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
+import { auth, db } from "../src/firebase";
+import { GenerationDoc } from "../src/models";
 
 type HistoryItem = {
   id: string;
-  style: string;
-  createdAtLabel: string;
+  data: GenerationDoc;
 };
-
-// Mockowane dane – docelowo query do kolekcji generations
-const MOCK_HISTORY: HistoryItem[] = [
-  {
-    id: "gen_1",
-    style: "Sticker",
-    createdAtLabel: "Dziś, 12:34",
-  },
-  {
-    id: "gen_2",
-    style: "Cartoon",
-    createdAtLabel: "Wczoraj, 19:10",
-  },
-  {
-    id: "gen_3",
-    style: "Oil Painting",
-    createdAtLabel: "2 dni temu",
-  },
-  {
-    id: "gen_4",
-    style: "Line Art",
-    createdAtLabel: "3 dni temu",
-  },
-];
 
 export default function HistoryScreen() {
   const router = useRouter();
+  const [items, setItems] = useState<HistoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      router.replace("/");
+      return;
+    }
+
+    const q = query(
+      collection(db, "generations"),
+      where("userId", "==", currentUser.uid),
+      orderBy("createdAt", "desc")
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const next: HistoryItem[] = snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          data: docSnap.data() as GenerationDoc,
+        }));
+        setItems(next);
+        setIsLoading(false);
+      },
+      (err) => {
+        console.error("Failed to load generations history", err);
+        setError("Failed to load generations history.");
+        setIsLoading(false);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [router]);
+
+  const renderEmptyState = () => {
+    if (isLoading) {
+      return (
+        <View
+          style={{
+            marginTop: 32,
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <ActivityIndicator size="large" color="#22c55e" />
+          <Text style={{ color: "#9ca3af", fontSize: 14 }}>
+            Ładowanie historii generacji...
+          </Text>
+        </View>
+      );
+    }
+
+    if (error) {
+      return (
+        <View
+          style={{
+            marginTop: 32,
+            padding: 16,
+            borderRadius: 12,
+            backgroundColor: "#0f172a",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <Text style={{ color: "#fecaca", fontSize: 14 }}>{error}</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View
+        style={{
+          marginTop: 32,
+          padding: 16,
+          borderRadius: 12,
+          backgroundColor: "#0f172a",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
+        <Text style={{ color: "#e5e7eb", fontSize: 14 }}>
+          Nie masz jeszcze żadnych generacji.
+        </Text>
+        <Pressable
+          onPress={() => router.push("/new-generation")}
+          style={{
+            marginTop: 4,
+            paddingHorizontal: 16,
+            paddingVertical: 10,
+            borderRadius: 999,
+            backgroundColor: "#22c55e",
+          }}
+        >
+          <Text
+            style={{
+              color: "#022c22",
+              fontWeight: "600",
+              fontSize: 14,
+            }}
+          >
+            Stwórz pierwszą grafikę
+          </Text>
+        </Pressable>
+      </View>
+    );
+  };
+
+  const formatCreatedAt = (doc: GenerationDoc) => {
+    const ts = doc.createdAt;
+    if (!ts) return "";
+
+    try {
+      const date = ts.toDate();
+      return date.toLocaleString();
+    } catch {
+      return "";
+    }
+  };
 
   return (
     <ScrollView
@@ -86,44 +201,11 @@ export default function HistoryScreen() {
         </View>
 
         {/* Grid miniaturek */}
-        {MOCK_HISTORY.length === 0 ? (
-          <View
-            style={{
-              marginTop: 32,
-              padding: 16,
-              borderRadius: 12,
-              backgroundColor: "#0f172a",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <Text style={{ color: "#e5e7eb", fontSize: 14 }}>
-              Nie masz jeszcze żadnych generacji.
-            </Text>
-            <Pressable
-              onPress={() => router.push("/new-generation")}
-              style={{
-                marginTop: 4,
-                paddingHorizontal: 16,
-                paddingVertical: 10,
-                borderRadius: 999,
-                backgroundColor: "#22c55e",
-              }}
-            >
-              <Text
-                style={{
-                  color: "#022c22",
-                  fontWeight: "600",
-                  fontSize: 14,
-                }}
-              >
-                Stwórz pierwszą grafikę
-              </Text>
-            </Pressable>
-          </View>
+        {items.length === 0 ? (
+          renderEmptyState()
         ) : (
           <FlatList
-            data={MOCK_HISTORY}
+            data={items}
             numColumns={2}
             keyExtractor={(item) => item.id}
             columnWrapperStyle={{ gap: 12 }}
@@ -131,7 +213,12 @@ export default function HistoryScreen() {
             scrollEnabled={false}
             renderItem={({ item }) => (
               <Pressable
-                onPress={() => router.push(`/generation/${item.id}`)}
+                onPress={() =>
+                  router.push({
+                    pathname: "/generation/[id]",
+                    params: { id: item.id },
+                  })
+                }
                 style={{
                   flex: 1,
                   aspectRatio: 1,
@@ -164,10 +251,10 @@ export default function HistoryScreen() {
                       fontWeight: "600",
                     }}
                   >
-                    {item.style}
+                    {item.data.style}
                   </Text>
                   <Text style={{ color: "#6b7280", fontSize: 11 }}>
-                    {item.createdAtLabel}
+                    {formatCreatedAt(item.data)}
                   </Text>
                 </View>
               </Pressable>
@@ -178,5 +265,4 @@ export default function HistoryScreen() {
     </ScrollView>
   );
 }
-
 
