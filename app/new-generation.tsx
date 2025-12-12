@@ -7,12 +7,11 @@ import {
   serverTimestamp,
   setDoc,
 } from "firebase/firestore";
-import { ref, uploadBytes } from "firebase/storage";
 import { useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
-import { auth, db, storage } from "../src/firebase";
+import { auth, db } from "../src/firebase";
 import { JobDoc } from "../src/models";
-import { getInputImagePath } from "../src/storagePaths";
+import { uploadInputImage } from "../src/storage/uploadInputImage";
 
 const STYLES = ["Sticker", "Cartoon", "Oil Painting", "Line Art"] as const;
 
@@ -81,11 +80,22 @@ export default function NewGenerationScreen() {
 
       const jobRef = doc(collection(db, "jobs"));
       const jobId = jobRef.id;
-      const inputImagePath = getInputImagePath(currentUser.uid, jobId);
+      let inputImagePath: string;
 
-      const response = await fetch(selectedImageUri);
-      const blob = await response.blob();
-      await uploadBytes(ref(storage, inputImagePath), blob);
+      try {
+        inputImagePath = await uploadInputImage(
+          selectedImageUri,
+          currentUser.uid,
+          jobId
+        );
+      } catch (uploadError) {
+        console.error("Failed to upload input image", uploadError);
+        Alert.alert(
+          "Error",
+          "Failed to upload the selected photo. Please try again."
+        );
+        return;
+      }
 
       const jobPayload: Omit<JobDoc, "resultGenerationId"> = {
         userId: currentUser.uid,
