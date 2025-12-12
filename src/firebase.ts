@@ -1,9 +1,10 @@
 import { initializeApp } from "firebase/app";
 import { connectAuthEmulator, getAuth } from "firebase/auth";
 import {
-    connectFirestoreEmulator,
-    getFirestore,
+  connectFirestoreEmulator,
+  getFirestore,
 } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 // Konfiguracja Firebase (z Firebase Console)
 const firebaseConfig = {
@@ -22,6 +23,7 @@ const app = initializeApp(firebaseConfig);
 // SDK
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const storage = getStorage(app);
 
 
 // EMULATORY – tylko Auth + Firestore
@@ -30,7 +32,7 @@ export const db = getFirestore(app);
 const USE_EMULATORS = true;
 
 if (USE_EMULATORS) {
-  const EMULATOR_HOST = "localhost";
+  const EMULATOR_HOST = "192.168.1.30";
 
   console.log("Connecting to Firebase Emulators...");
 

@@ -1,16 +1,61 @@
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  serverTimestamp,
+  setDoc,
+} from "firebase/firestore";
+import { ref, uploadBytes } from "firebase/storage";
 import { useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
-import { auth, db } from "../src/firebase";
+import { auth, db, storage } from "../src/firebase";
 import { JobDoc } from "../src/models";
+import { getInputImagePath } from "../src/storagePaths";
 
 const STYLES = ["Sticker", "Cartoon", "Oil Painting", "Line Art"] as const;
 
 export default function NewGenerationScreen() {
   const router = useRouter();
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const pickFromGallery = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Error", "Enable access to the gallery to continue.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setSelectedImageUri(result.assets[0].uri);
+    }
+  };
+
+  const takePhoto = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Error", "Enable access to the camera to continue.");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setSelectedImageUri(result.assets[0].uri);
+    }
+  };
 
   const handleGenerate = async () => {
     const currentUser = auth.currentUser;
@@ -22,6 +67,10 @@ export default function NewGenerationScreen() {
       Alert.alert("Choose a style to generate a new generation.");
       return;
     }
+    if (!selectedImageUri) {
+      Alert.alert("Error", "Select an image from the gallery or take a new photo.");
+      return;
+    }
 
     if (isSubmitting) {
       return;
@@ -30,20 +79,30 @@ export default function NewGenerationScreen() {
     try {
       setIsSubmitting(true);
 
+      const jobRef = doc(collection(db, "jobs"));
+      const jobId = jobRef.id;
+      const inputImagePath = getInputImagePath(currentUser.uid, jobId);
+
+      const response = await fetch(selectedImageUri);
+      const blob = await response.blob();
+      await uploadBytes(ref(storage, inputImagePath), blob);
+
       const jobPayload: Omit<JobDoc, "resultGenerationId"> = {
         userId: currentUser.uid,
         type: "GENERATE_STICKER",
-        inputImagePath: `input/${currentUser.uid}/fake-placeholder.jpg`, // na razie fake
+        inputImagePath,
         style: selectedStyle,
         status: "processing",
         // na kliencie używamy serverTimestamp – typowo rzutujemy do any
         createdAt: serverTimestamp() as any,
         updatedAt: serverTimestamp() as any,
       };
+      await setDoc(jobRef, jobPayload);
 
-      const jobRef = await addDoc(collection(db, "jobs"), jobPayload);
-
-      router.push({ pathname: "/job-status", params: { jobId: jobRef.id } });
+      router.push({
+        pathname: "/job-status",
+        params: { jobId },
+      });
     } catch (error) {
       console.error("Failed to create job", error);
       Alert.alert(
@@ -92,6 +151,7 @@ export default function NewGenerationScreen() {
         </Text>
         <View style={{ flexDirection: "row", gap: 12 }}>
           <Pressable
+            onPress={takePhoto}
             style={{
               flex: 1,
               padding: 12,
@@ -105,6 +165,7 @@ export default function NewGenerationScreen() {
             <Text style={{ color: "#e5e7eb" }}>Zrób zdjęcie</Text>
           </Pressable>
           <Pressable
+            onPress={pickFromGallery}
             style={{
               flex: 1,
               padding: 12,
@@ -127,11 +188,20 @@ export default function NewGenerationScreen() {
             borderColor: "#1f2937",
             alignItems: "center",
             justifyContent: "center",
+            overflow: "hidden",
           }}
         >
-          <Text style={{ color: "#6b7280" }}>
-            Podgląd zdjęcia (placeholder)
-          </Text>
+          {selectedImageUri ? (
+            <Image
+              source={{ uri: selectedImageUri }}
+              style={{ width: "100%", height: "100%" }}
+              contentFit="cover"
+            />
+          ) : (
+            <Text style={{ color: "#6b7280" }}>
+              Podgląd zdjęcia (placeholder)
+            </Text>
+          )}
         </View>
       </View>
 
