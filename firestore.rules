@@ -1,18 +1,37 @@
-rules_version='2'
-
+rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2026, 1, 7);
+
+    function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid);
+      allow update, delete: if false; // userDoc zmienia backend (limit)
+    }
+
+    match /jobs/{jobId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+
+      // klient może tylko UTWORZYĆ joba i tylko dla siebie
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == "queued"
+        && request.resource.data.type == "GENERATE_STICKER"
+        && request.resource.data.inputImagePath is string
+        && request.resource.data.style is string
+        && !( "errorCode" in request.resource.data )
+        && !( "errorMessage" in request.resource.data )
+        && !( "resultGenerationId" in request.resource.data );
+
+      // klient NIE może aktualizować joba (status robi backend)
+      allow update, delete: if false;
+    }
+
+    match /generations/{genId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow create, update, delete: if false; // generacje tworzy backend
     }
   }
 }

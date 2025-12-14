@@ -1,5 +1,16 @@
 {
   "projects": {
     "default": "petmagicai"
-  }
+  },
+  "targets": {
+    "petmagicai": {
+      "storage": {
+        "rules": [
+          "pet",
+          "petmagicai.firebasestorage.app"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

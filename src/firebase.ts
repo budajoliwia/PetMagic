@@ -4,7 +4,9 @@ import {
   connectFirestoreEmulator,
   getFirestore,
 } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
+import { connectStorageEmulator, getStorage } from "firebase/storage";
+
+
 
 // Konfiguracja Firebase (z Firebase Console)
 const firebaseConfig = {
@@ -32,7 +34,8 @@ export const storage = getStorage(app);
 const USE_EMULATORS = true;
 
 if (USE_EMULATORS) {
-  const EMULATOR_HOST = "192.168.1.30";
+ // const EMULATOR_HOST = "192.168.1.30";
+   const EMULATOR_HOST = "localhost";
 
   console.log("Connecting to Firebase Emulators...");
 
@@ -43,4 +46,6 @@ if (USE_EMULATORS) {
 
   // Firestore Emulator (8080)
   connectFirestoreEmulator(db, EMULATOR_HOST, 8080);
+
+   connectStorageEmulator(storage, EMULATOR_HOST, 9199);
 }
