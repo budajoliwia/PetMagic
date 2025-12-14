@@ -104,11 +104,11 @@ export const processJob = onDocumentCreated("jobs/{jobId}", async (event) => {
     await consumeUserLimit(jobData.userId);
   } catch (error) {
     if (error instanceof LimitExceededError) {
-      await markJobError(
-        jobRef,
-        "Daily job limit reached. Spróbuj jutro.",
-        "LIMIT_EXCEEDED"
-      );
+    await markJobError(
+      jobRef,
+      "Daily job limit reached. Spróbuj jutro.",
+      "LIMIT_REACHED"
+    );
       return;
     }
     logger.error("Failed to consume user limit", {

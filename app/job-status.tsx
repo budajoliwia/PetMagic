@@ -61,6 +61,9 @@ export default function JobStatusScreen() {
     };
   }, [jobId, router]);
 
+  const isLimitReachedError =
+    job?.status === "error" && job?.errorCode === "LIMIT_REACHED";
+
   const statusLabel = useMemo(() => {
     const status = job?.status;
     switch (status) {
@@ -149,11 +152,16 @@ export default function JobStatusScreen() {
             <Text style={{ color: "#f97373", fontSize: 14 }}>{error}</Text>
           ) : (
             <>
-              <Text style={{ color: "#9ca3af", fontSize: 14 }}>
-                status:{" "}
-                <Text style={{ color: "#22c55e" }}>{job?.status}</Text> (
-                {statusLabel})
+            <Text style={{ color: "#9ca3af", fontSize: 14 }}>
+              status:{" "}
+              <Text style={{ color: "#22c55e" }}>{job?.status}</Text> (
+              {statusLabel})
+            </Text>
+            {isLimitReachedError && (
+              <Text style={{ color: "#f97373", fontSize: 14 }}>
+                Przekroczono dzienny limit generacji. Spróbuj jutro.
               </Text>
+            )}
               <Text style={{ color: "#6b7280", fontSize: 12 }}>
                 Ten ekran nasłuchuje dokumentu{" "}
                 <Text style={{ fontWeight: "600" }}>jobs/{jobId}</Text> i po
