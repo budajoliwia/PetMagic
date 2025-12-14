@@ -25,6 +25,13 @@ Requested style: ${style}
 
 Write a single short line describing how the final creature looks.`;
 
+const openAiApiKey = process.env.OPENAI_API_KEY;
+
+if (!openAiApiKey) {
+  throw new Error("OPENAI_API_KEY missing");
+}
+
+
   const response = await client.responses.create({
     model: "gpt-4o-mini",
     input: prompt,
