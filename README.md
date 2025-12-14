@@ -48,3 +48,8 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+## Firebase functions requirements
+
+- The job-processing Cloud Function depends on `openai` and `sharp` (already installed via `npm install` inside `functions/`).
+- Configure `OPENAI_API_KEY` before deployment (for example with `firebase functions:env:set OPENAI_API_KEY="sk_..."` or via the Firebase console) so the function can invoke `gpt-4o-mini`.

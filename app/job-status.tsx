@@ -1,23 +1,15 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import {
-  addDoc,
-  collection,
-  doc,
-  onSnapshot,
-  serverTimestamp,
-  updateDoc,
-} from "firebase/firestore";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { doc, onSnapshot } from "firebase/firestore";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   Text,
-  View,
+  View
 } from "react-native";
 import { db } from "../src/firebase";
-import { GenerationDoc, JobDoc } from "../src/models";
+import { JobDoc } from "../src/models";
 
 export default function JobStatusScreen() {
   const router = useRouter();
@@ -26,8 +18,6 @@ export default function JobStatusScreen() {
   const [job, setJob] = useState<JobDoc | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const fakeTriggeredRef = useRef(false);
 
   useEffect(() => {
     if (!jobId || typeof jobId !== "string") {
@@ -70,56 +60,6 @@ export default function JobStatusScreen() {
       unsubscribe();
     };
   }, [jobId, router]);
-
-  // Dev-only: fake zakończenie joba po ~3 sekundach
-  useEffect(() => {
-    if (!jobId || typeof jobId !== "string") {
-      return;
-    }
-
-    const timeoutId = setTimeout(async () => {
-      if (fakeTriggeredRef.current) return;
-      if (!job || job.status !== "processing") return;
-
-      try {
-        fakeTriggeredRef.current = true;
-
-        const generationPayload: Omit<GenerationDoc, "createdAt"> & {
-          createdAt: any;
-        } = {
-          userId: job.userId,
-          jobId,
-          inputImagePath: job.inputImagePath,
-          outputImagePath: `output/${job.userId}/${jobId}-fake.png`,
-          style: job.style,
-          createdAt: serverTimestamp() as any,
-          title: "Fake generacja",
-          isFavorite: false,
-        };
-
-        const genRef = await addDoc(
-          collection(db, "generations"),
-          generationPayload
-        );
-
-        await updateDoc(doc(db, "jobs", jobId), {
-          status: "done",
-          resultGenerationId: genRef.id,
-          updatedAt: serverTimestamp(),
-        });
-      } catch (err) {
-        console.error("Failed to fake-complete job", err);
-        Alert.alert(
-          "Błąd",
-          "Coś poszło nie tak podczas symulacji zakończenia zadania."
-        );
-      }
-    }, 3000);
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [job, jobId]);
 
   const statusLabel = useMemo(() => {
     const status = job?.status;
@@ -182,7 +122,7 @@ export default function JobStatusScreen() {
             <ActivityIndicator size="small" color="#22c55e" />
           )}
           <Text style={{ color: "#a5b4fc", fontSize: 14 }}>
-            Analizuję futerko… Dodaję magię… (dev: fake generacja po 3s)
+            Creating generation...
           </Text>
         </View>
 
