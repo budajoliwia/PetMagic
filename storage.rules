@@ -5,6 +5,23 @@ rules_version = '2';
 //    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
 service firebase.storage {
   match /b/{bucket}/o {
+    function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+
+    // User uploads source images here
+    match /input/{uid}/{fileName} {
+      allow write: if isOwner(uid);
+      allow read: if isOwner(uid);
+    }
+
+    // App reads generated results here
+    match /output/{uid}/{fileName} {
+      allow read: if isOwner(uid);
+      // writes are performed by backend (Admin SDK bypasses rules anyway)
+      allow write: if false;
+    }
+
+    // Everything else locked down
     match /{allPaths=**} {
       allow read, write: if false;
     }

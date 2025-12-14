@@ -124,6 +124,12 @@ export const processJob = onDocumentCreated("jobs/{jobId}", async (event) => {
   }
 
   try {
+    // mark as processing as soon as we start the heavy work
+    await jobRef.update({
+      status: "processing",
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
     const inputBuffer = await downloadBuffer(jobData.inputImagePath);
     const aiResponse = await runStyleModel({
       jobId,

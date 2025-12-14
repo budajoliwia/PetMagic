@@ -1,11 +1,18 @@
 import OpenAI from "openai";
 
-const openAiApiKey = process.env.OPENAI_API_KEY;
-if (!openAiApiKey) {
-  throw new Error("Missing OPENAI_API_KEY environment variable.");
-}
+let client: OpenAI | null = null;
 
-const client = new OpenAI({ apiKey: openAiApiKey });
+function getClient(): OpenAI {
+  const openAiApiKey = process.env.OPENAI_API_KEY;
+  if (!openAiApiKey) {
+    throw new Error("Missing OPENAI_API_KEY environment variable.");
+  }
+
+  if (!client) {
+    client = new OpenAI({ apiKey: openAiApiKey });
+  }
+  return client;
+}
 
 export interface RunStyleModelParams {
   jobId: string;
@@ -25,14 +32,7 @@ Requested style: ${style}
 
 Write a single short line describing how the final creature looks.`;
 
-const openAiApiKey = process.env.OPENAI_API_KEY;
-
-if (!openAiApiKey) {
-  throw new Error("OPENAI_API_KEY missing");
-}
-
-
-  const response = await client.responses.create({
+  const response = await getClient().responses.create({
     model: "gpt-4o-mini",
     input: prompt,
   });

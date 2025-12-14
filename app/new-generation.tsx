@@ -102,7 +102,7 @@ export default function NewGenerationScreen() {
         type: "GENERATE_STICKER",
         inputImagePath,
         style: selectedStyle,
-        status: "processing",
+        status: "queued",
         // na kliencie używamy serverTimestamp – typowo rzutujemy do any
         createdAt: serverTimestamp() as any,
         updatedAt: serverTimestamp() as any,
@@ -288,10 +288,7 @@ export default function NewGenerationScreen() {
             Generuj
           </Text>
         </Pressable>
-        <Text style={{ color: "#6b7280", fontSize: 12 }}>
-          Na razie przycisk tylko przechodzi do ekranu statusu. Upload i
-          wywołanie Cloud Function dodamy później.
-        </Text>
+       
       </View>
     </ScrollView>
   );
