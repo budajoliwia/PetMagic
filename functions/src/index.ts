@@ -20,8 +20,6 @@ import { JobDoc, UserDoc } from "./types";
 
 initializeApp();
 const db = getFirestore();
-const storage = getStorage();
-const bucket = storage.bucket();
 
 setGlobalOptions({ maxInstances: 10 });
 
@@ -34,6 +32,38 @@ class LimitExceededError extends Error {
 
 function getTodayKey() {
   return new Date().toISOString().split("T")[0];
+}
+
+function resolveBucketName(): string {
+  const explicit =
+    process.env.STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET;
+  if (explicit) return explicit;
+
+  const firebaseConfig = process.env.FIREBASE_CONFIG;
+  if (firebaseConfig) {
+    try {
+      const parsed = JSON.parse(firebaseConfig) as { storageBucket?: string };
+      if (parsed.storageBucket) return parsed.storageBucket;
+    } catch {
+      // ignore
+    }
+  }
+
+  const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT;
+  if (projectId) {
+    // Common default bucket pattern
+    return `${projectId}.appspot.com`;
+  }
+
+  throw new Error(
+    "Storage bucket name not configured. Set STORAGE_BUCKET env var."
+  );
+}
+
+function getBucket() {
+  // IMPORTANT: don't call bucket() at module-load time; firebase-tools "analyzes"
+  // functions by requiring this file and expects no runtime errors.
+  return getStorage().bucket(resolveBucketName());
 }
 
 async function consumeUserLimit(userId: string): Promise<void> {
@@ -67,13 +97,13 @@ async function consumeUserLimit(userId: string): Promise<void> {
 }
 
 async function downloadBuffer(path: string): Promise<Buffer> {
-  const file = bucket.file(path);
+  const file = getBucket().file(path);
   const [buffer] = await file.download();
   return buffer;
 }
 
 async function uploadBuffer(path: string, buffer: Buffer) {
-  await bucket.file(path).save(buffer, { contentType: "image/png" });
+  await getBucket().file(path).save(buffer, { contentType: "image/png" });
 }
 
 async function markJobError(
