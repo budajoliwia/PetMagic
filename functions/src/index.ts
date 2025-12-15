@@ -10,9 +10,8 @@
 import { initializeApp } from "firebase-admin/app";
 import { DocumentReference, FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
-import { setGlobalOptions } from "firebase-functions";
 import * as logger from "firebase-functions/logger";
-import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import * as functions from "firebase-functions/v1";
 import { runStyleModel } from "./aiClient";
 import { stylizeImage } from "./imageProcessing";
 import { getOutputImagePath } from "./storagePaths";
@@ -20,8 +19,6 @@ import { JobDoc, UserDoc } from "./types";
 
 initializeApp();
 const db = getFirestore();
-
-setGlobalOptions({ maxInstances: 10 });
 
 class LimitExceededError extends Error {
   constructor() {
@@ -51,8 +48,8 @@ function resolveBucketName(): string {
 
   const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT;
   if (projectId) {
-    // Common default bucket pattern
-    return `${projectId}.appspot.com`;
+    // Newer Firebase projects use *.firebasestorage.app, older use *.appspot.com
+    return `${projectId}.firebasestorage.app`;
   }
 
   throw new Error(
@@ -132,9 +129,13 @@ function mapProcessingErrorCode(error: unknown): string {
   return "JOB_PROCESSING_ERROR";
 }
 
-export const processJob = onDocumentCreated("jobs/{jobId}", async (event) => {
-  const jobId = event.params.jobId;
-  const jobData = event.data?.data() as JobDoc | undefined;
+export const processJob = functions
+  .runWith({ maxInstances: 10 })
+  .region("europe-central2")
+  .firestore.document("jobs/{jobId}")
+  .onCreate(async (snap: functions.firestore.QueryDocumentSnapshot, context: functions.EventContext) => {
+  const jobId = context.params.jobId as string;
+  const jobData = snap.data() as JobDoc | undefined;
 
   if (!jobData) {
     logger.error("Job document payload missing", { jobId });
@@ -223,4 +224,4 @@ export const processJob = onDocumentCreated("jobs/{jobId}", async (event) => {
       code
     );
   }
-});
+  });

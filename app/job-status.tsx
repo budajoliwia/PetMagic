@@ -64,6 +64,16 @@ export default function JobStatusScreen() {
   const isLimitReachedError =
     job?.status === "error" && job?.errorCode === "LIMIT_REACHED";
 
+  const errorDetails =
+    job?.status === "error"
+      ? {
+          code: job?.errorCode ?? "UNKNOWN",
+          message:
+            job?.errorMessage ??
+            "Wystąpił błąd podczas generowania. Spróbuj ponownie za chwilę.",
+        }
+      : null;
+
   const statusLabel = useMemo(() => {
     const status = job?.status;
     switch (status) {
@@ -125,7 +135,11 @@ export default function JobStatusScreen() {
             <ActivityIndicator size="small" color="#22c55e" />
           )}
           <Text style={{ color: "#a5b4fc", fontSize: 14 }}>
-            Creating generation...
+            {job?.status === "error"
+              ? "Generation failed"
+              : job?.status === "done"
+              ? "Done"
+              : "Creating generation..."}
           </Text>
         </View>
 
@@ -161,6 +175,16 @@ export default function JobStatusScreen() {
               <Text style={{ color: "#f97373", fontSize: 14 }}>
                 Przekroczono dzienny limit generacji. Spróbuj jutro.
               </Text>
+            )}
+            {errorDetails && !isLimitReachedError && (
+              <View style={{ gap: 6 }}>
+                <Text style={{ color: "#f97373", fontSize: 14 }}>
+                  {errorDetails.message}
+                </Text>
+                <Text style={{ color: "#94a3b8", fontSize: 12 }}>
+                  Kod: {errorDetails.code}
+                </Text>
+              </View>
             )}
               <Text style={{ color: "#6b7280", fontSize: 12 }}>
                 Ten ekran nasłuchuje dokumentu{" "}
