@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import React, { useState } from "react";
 import { ActivityIndicator, Alert, Button, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth, db } from "../src/firebase";
@@ -70,6 +70,22 @@ export default function AuthScreen() {
     setIsLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, password);
+
+      // Ensure user document exists (older accounts or deleted doc would break backend limit checks)
+      const userRef = doc(db, "users", userCredential.user.uid);
+      const userSnap = await getDoc(userRef);
+      if (!userSnap.exists()) {
+        const userDoc: UserDoc = {
+          email: trimmedEmail,
+          createdAt: new Date().toISOString(),
+          role: "user",
+          dailyLimit: 5,
+          usedToday: 0,
+          lastUsageDate: null,
+        };
+        await setDoc(userRef, userDoc);
+      }
+
       console.log("Logged in:", userCredential.user.email);
       Alert.alert("Success", "Logged in successfully!");
       router.replace("/home");

@@ -119,6 +119,19 @@ async function markJobError(
   });
 }
 
+function normalizeErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  return typeof error === "string" ? error : JSON.stringify(error);
+}
+
+function mapProcessingErrorCode(error: unknown): string {
+  const msg = normalizeErrorMessage(error);
+  if (msg.includes("OPENAI_API_KEY")) return "OPENAI_API_KEY_MISSING";
+  if (msg.includes("No such object") || msg.includes("not found")) return "INPUT_NOT_FOUND";
+  if (msg.toLowerCase().includes("storage bucket name not configured")) return "BUCKET_NOT_CONFIGURED";
+  return "JOB_PROCESSING_ERROR";
+}
+
 export const processJob = onDocumentCreated("jobs/{jobId}", async (event) => {
   const jobId = event.params.jobId;
   const jobData = event.data?.data() as JobDoc | undefined;
@@ -199,12 +212,15 @@ export const processJob = onDocumentCreated("jobs/{jobId}", async (event) => {
   } catch (error) {
     logger.error("Job processing failed", {
       jobId,
-      error: (error as Error).message,
+      error: normalizeErrorMessage(error),
     });
+    const code = mapProcessingErrorCode(error);
     await markJobError(
       jobRef,
-      "Wystąpił błąd podczas przetwarzania zadania.",
-      "JOB_PROCESSING_ERROR"
+      `Wystąpił błąd podczas przetwarzania zadania: ${normalizeErrorMessage(
+        error
+      )}`,
+      code
     );
   }
 });

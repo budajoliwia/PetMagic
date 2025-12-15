@@ -6,7 +6,6 @@
     "petmagicai": {
       "storage": {
         "rules": [
-          "pet",
           "petmagicai.firebasestorage.app"
         ]
       }
