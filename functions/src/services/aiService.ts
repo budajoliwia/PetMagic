@@ -40,3 +40,4 @@ Write a single short line describing how the final creature looks.`;
   // Najprościej i bez walki z typami:
   return (response.output_text ?? "Stylized art generated.").trim();
 }
+

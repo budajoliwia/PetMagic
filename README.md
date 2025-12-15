@@ -1,55 +1,75 @@
-# Welcome to your Expo app 👋
+# 🐾 PetMagicAI
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+This project is a monorepo containing both the **Mobile App** (React Native/Expo) and the **Backend** (Firebase Cloud Functions).
 
-## Get started
+## 📂 Project Structure
 
-1. Install dependencies
+The codebase is strictly separated:
 
-   ```bash
-   npm install
-   ```
+### 📱 `mobile/` (Frontend)
+- Built with **React Native** & **Expo**.
+- Contains all UI code (`app/`), assets, and frontend logic (`src/`).
+- **Entry point:** `mobile/app/` (Expo Router).
 
-2. Start the app
+### ☁️ `functions/` (Backend)
+- Built with **Node.js** & **Firebase Cloud Functions (v2)**.
+- Handles heavy logic: AI generation, image processing, user limits.
+- **Entry point:** `functions/src/index.ts`.
 
-   ```bash
-   npx expo start
-   ```
+---
 
-In the output, you'll find options to open the app in a
+## 🛠 Setup & Installation
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### 1. Prerequisites
+- Node.js (v18 or v20 recommended)
+- Firebase CLI (`npm install -g firebase-tools`)
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+### 2. Install Dependencies (One Command)
+Run this in the root directory to install dependencies for both parts:
 
 ```bash
-npm run reset-project
+npm run setup
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Or manually:
+```bash
+cd mobile && npm install
+cd ../functions && npm install
+```
 
-## Learn more
+---
 
-To learn more about developing your project with Expo, look at the following resources:
+## 🚀 Running the Project
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Local Development (Emulator + App)
 
-## Join the community
+1. **Start Backend Emulator:**
+   From root:
+   ```bash
+   npm run dev:emulator
+   # or: firebase emulators:start
+   ```
 
-Join our community of developers creating universal apps.
+2. **Start Mobile App:**
+   In a new terminal (from root):
+   ```bash
+   npm run mobile
+   # or: cd mobile && npx expo start
+   ```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### 🔑 Secrets (Backend)
+- **Local:** Edit `functions/.env.local` (copy from template).
+- **Production:** `firebase functions:secrets:set OPENAI_API_KEY`.
 
-## Firebase functions requirements
+## 🏗 Architecture Details
 
-- The job-processing Cloud Function depends on `openai` and `sharp` (already installed via `npm install` inside `functions/`).
-- Configure `OPENAI_API_KEY` before deployment (for example with `firebase functions:env:set OPENAI_API_KEY="sk_..."` or via the Firebase console) so the function can invoke `gpt-4o-mini`.
+**Job Processing Flow:**
+1. App (Mobile) creates a `jobs/{jobId}` document and uploads an image.
+2. Cloud Function `processJob` triggers on document creation.
+3. **Step 1:** Checks User Limits (`functions/src/services/userService.ts`).
+4. **Step 2:** Calls OpenAI (`functions/src/services/aiService.ts`).
+5. **Step 3:** Processes image (`functions/src/services/imageService.ts`).
+6. **Step 4:** Saves result.
+
+---
+*PetMagicAI Monorepo*

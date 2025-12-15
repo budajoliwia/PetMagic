@@ -1,0 +1,45 @@
+import { db } from "../core/firebase";
+import { UserDoc } from "../types";
+
+export class LimitExceededError extends Error {
+  constructor() {
+    super("User limit exceeded");
+    this.name = "LimitExceededError";
+  }
+}
+
+function getTodayKey() {
+  return new Date().toISOString().split("T")[0];
+}
+
+export async function consumeUserLimit(userId: string): Promise<void> {
+  const userRef = db.collection("users").doc(userId);
+  const today = getTodayKey();
+
+  await db.runTransaction(async (tx) => {
+    const userSnapshot = await tx.get(userRef);
+    if (!userSnapshot.exists) {
+      throw new Error("Missing user document");
+    }
+
+    const user = userSnapshot.data() as UserDoc;
+    const dailyLimit = user.dailyLimit ?? 0;
+    let usedToday = user.usedToday ?? 0;
+    const lastUsageDate = user.lastUsageDate ?? null;
+
+    // Reset counter if it's a new day
+    if (lastUsageDate !== today) {
+      usedToday = 0;
+    }
+
+    if (dailyLimit > 0 && usedToday >= dailyLimit) {
+      throw new LimitExceededError();
+    }
+
+    tx.update(userRef, {
+      usedToday: usedToday + 1,
+      lastUsageDate: today,
+    });
+  });
+}
+

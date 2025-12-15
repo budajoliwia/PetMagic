@@ -1,4 +1,4 @@
-// functions/src/storagePaths.ts
+// Shared logic for storage paths
 
 export function getInputImagePath(userId: string, jobId: string): string {
   return `input/${userId}/${jobId}.jpg`;
@@ -7,3 +7,4 @@ export function getInputImagePath(userId: string, jobId: string): string {
 export function getOutputImagePath(userId: string, generationId: string): string {
   return `output/${userId}/${generationId}.png`;
 }
+
