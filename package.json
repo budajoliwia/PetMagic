@@ -8,6 +8,9 @@
     "functions:build": "npm --prefix functions run build",
     "functions:deploy": "npm --prefix functions run deploy",
     "functions:install": "npm --prefix functions install",
+    "deploy:all": "firebase deploy --only functions,firestore:rules,storage",
+    "deploy:functions": "firebase deploy --only functions",
+    "secrets:set": "firebase functions:secrets:set OPENAI_API_KEY",
     "dev:emulator": "firebase emulators:start",
     "setup": "npm run mobile:install && npm run functions:install"
   },

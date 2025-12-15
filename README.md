@@ -31,45 +31,59 @@ Run this in the root directory to install dependencies for both parts:
 npm run setup
 ```
 
-Or manually:
-```bash
-cd mobile && npm install
-cd ../functions && npm install
-```
-
 ---
 
-## 🚀 Running the Project
+## 🚀 Running Locally (Emulator)
 
-### Local Development (Emulator + App)
+1. **Configure Local Secrets:**
+   Copy the template in `functions/` folder:
+   ```bash
+   cp functions/env.local.template functions/.env.local
+   # Edit .env.local and add your OPENAI_API_KEY
+   ```
 
-1. **Start Backend Emulator:**
+2. **Start Backend Emulator:**
    From root:
    ```bash
    npm run dev:emulator
-   # or: firebase emulators:start
    ```
 
-2. **Start Mobile App:**
+3. **Start Mobile App:**
    In a new terminal (from root):
    ```bash
    npm run mobile
-   # or: cd mobile && npx expo start
    ```
 
-### 🔑 Secrets (Backend)
-- **Local:** Edit `functions/.env.local` (copy from template).
-- **Production:** `firebase functions:secrets:set OPENAI_API_KEY`.
+---
+
+## ☁️ Deployment to Production
+
+### 1. Set Secrets (One-time setup)
+In production, we use **Google Secret Manager**. The `.env.local` file is NOT uploaded.
+Run this command and paste your OpenAI API Key when prompted:
+
+```bash
+npm run secrets:set
+```
+
+### 2. Deploy Everything
+This command deploys **Functions, Firestore Rules, and Storage Rules** at once:
+
+```bash
+npm run deploy:all
+```
+
+**Note on V1 to V2 Migration:**
+If you see errors about "1st Gen" functions during deploy, you might need to delete the old function in Firebase Console first, then redeploy.
+
+---
 
 ## 🏗 Architecture Details
 
 **Job Processing Flow:**
 1. App (Mobile) creates a `jobs/{jobId}` document and uploads an image.
-2. Cloud Function `processJob` triggers on document creation.
-3. **Step 1:** Checks User Limits (`functions/src/services/userService.ts`).
-4. **Step 2:** Calls OpenAI (`functions/src/services/aiService.ts`).
-5. **Step 3:** Processes image (`functions/src/services/imageService.ts`).
-6. **Step 4:** Saves result.
+2. Cloud Function `processJob` (v2) triggers on document creation.
+3. **Secrets:** In production, the function securely fetches `OPENAI_API_KEY` from Secret Manager. Locally, it reads from `.env.local`.
 
 ---
 *PetMagicAI Monorepo*
