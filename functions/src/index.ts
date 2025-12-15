@@ -19,6 +19,7 @@ import { JobDoc, UserDoc } from "./types";
 
 initializeApp();
 const db = getFirestore();
+const storage = getStorage();
 
 class LimitExceededError extends Error {
   constructor() {
@@ -57,11 +58,7 @@ function resolveBucketName(): string {
   );
 }
 
-function getBucket() {
-  // IMPORTANT: don't call bucket() at module-load time; firebase-tools "analyzes"
-  // functions by requiring this file and expects no runtime errors.
-  return getStorage().bucket(resolveBucketName());
-}
+const bucket = storage.bucket(resolveBucketName());
 
 async function consumeUserLimit(userId: string): Promise<void> {
   const userRef = db.collection("users").doc(userId);
@@ -94,13 +91,13 @@ async function consumeUserLimit(userId: string): Promise<void> {
 }
 
 async function downloadBuffer(path: string): Promise<Buffer> {
-  const file = getBucket().file(path);
+  const file = bucket.file(path);
   const [buffer] = await file.download();
   return buffer;
 }
 
 async function uploadBuffer(path: string, buffer: Buffer) {
-  await getBucket().file(path).save(buffer, { contentType: "image/png" });
+  await bucket.file(path).save(buffer, { contentType: "image/png" });
 }
 
 async function markJobError(
