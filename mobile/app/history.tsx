@@ -6,6 +6,7 @@ import {
   query,
   where,
 } from "firebase/firestore";
+import { Image } from "expo-image";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -16,12 +17,39 @@ import {
   View,
 } from "react-native";
 import { auth, db } from "../src/firebase";
+import { useStorageDownloadUrl } from "../src/hooks/useStorageDownloadUrl";
 import { GenerationDoc } from "../src/models";
 
 type HistoryItem = {
   id: string;
   data: GenerationDoc;
 };
+
+function GenerationThumbnail({ outputImagePath }: { outputImagePath?: string }) {
+  const { url, isLoading, error } = useStorageDownloadUrl(outputImagePath);
+
+  if (url) {
+    return (
+      <Image
+        source={{ uri: url }}
+        style={{ width: "100%", height: "100%" }}
+        contentFit="cover"
+      />
+    );
+  }
+
+  return (
+    <View style={{ alignItems: "center", justifyContent: "center", gap: 6 }}>
+      {isLoading ? (
+        <ActivityIndicator size="small" color="#22c55e" />
+      ) : (
+        <Text style={{ color: "#6b7280", fontSize: 12 }}>
+          {error ? "Błąd podglądu" : "Brak podglądu"}
+        </Text>
+      )}
+    </View>
+  );
+}
 
 export default function HistoryScreen() {
   const router = useRouter();
@@ -237,11 +265,12 @@ export default function HistoryScreen() {
                     backgroundColor: "#111827",
                     alignItems: "center",
                     justifyContent: "center",
+                    overflow: "hidden",
                   }}
                 >
-                  <Text style={{ color: "#6b7280", fontSize: 12 }}>
-                    Miniatura
-                  </Text>
+                  <GenerationThumbnail
+                    outputImagePath={item.data.outputImagePath}
+                  />
                 </View>
                 <View style={{ marginTop: 6 }}>
                   <Text

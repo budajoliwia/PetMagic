@@ -34,8 +34,10 @@ export const storage = getStorage(app);
 const USE_EMULATORS = true;
 
 if (USE_EMULATORS) {
- // const EMULATOR_HOST = "192.168.1.30";
-   const EMULATOR_HOST = "localhost";
+  // For physical devices, "localhost" points to the phone itself.
+  // Use LAN IP of the machine running Firebase emulators.
+  const EMULATOR_HOST =
+    process.env.EXPO_PUBLIC_EMULATOR_HOST ?? "192.168.1.30";
 
   console.log("Connecting to Firebase Emulators...");
 
@@ -47,5 +49,6 @@ if (USE_EMULATORS) {
   // Firestore Emulator (8080)
   connectFirestoreEmulator(db, EMULATOR_HOST, 8080);
 
-   connectStorageEmulator(storage, EMULATOR_HOST, 9199);
+  // Storage Emulator (9199)
+  connectStorageEmulator(storage, EMULATOR_HOST, 9199);
 }

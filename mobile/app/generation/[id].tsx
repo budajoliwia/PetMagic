@@ -1,8 +1,17 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { doc, getDoc } from "firebase/firestore";
+import { Image } from "expo-image";
 import { db } from "../../src/firebase";
+import { useStorageDownloadUrl } from "../../src/hooks/useStorageDownloadUrl";
 import { GenerationDoc } from "../../src/models";
 
 export default function GenerationDetailScreen() {
@@ -13,6 +22,9 @@ export default function GenerationDetailScreen() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const { url: outputUrl, isLoading: isOutputLoading, error: outputError } =
+    useStorageDownloadUrl(generation?.outputImagePath);
 
   useEffect(() => {
     const loadGeneration = async () => {
@@ -57,6 +69,26 @@ export default function GenerationDetailScreen() {
   const handleStubAction = (label: string) => {
     Alert.alert("Wkrótce", `Akcja „${label}” będzie dostępna w kolejnej wersji.`);
   };
+
+  if (isLoading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#020617",
+          gap: 12,
+          padding: 16,
+        }}
+      >
+        <ActivityIndicator size="large" color="#22c55e" />
+        <Text style={{ color: "#9ca3af", fontSize: 14 }}>
+          Ładowanie generacji...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -115,14 +147,27 @@ export default function GenerationDetailScreen() {
             aspectRatio: 1,
             alignItems: "center",
             justifyContent: "center",
+            overflow: "hidden",
           }}
         >
-          <Text style={{ color: "#6b7280", fontSize: 14 }}>
-            Podgląd wygenerowanego obrazka
-          </Text>
-          <Text style={{ color: "#4b5563", fontSize: 12, marginTop: 4 }}>
-            (docelowo wczytywany z outputImagePath)
-          </Text>
+          {outputUrl ? (
+            <Image
+              source={{ uri: outputUrl }}
+              style={{ width: "100%", height: "100%" }}
+              contentFit="cover"
+            />
+          ) : (
+            <View style={{ alignItems: "center", gap: 6 }}>
+              <Text style={{ color: "#6b7280", fontSize: 14 }}>
+                {isOutputLoading ? "Ładowanie podglądu..." : "Brak podglądu"}
+              </Text>
+              {!!outputError && (
+                <Text style={{ color: "#fca5a5", fontSize: 12 }}>
+                  {outputError}
+                </Text>
+              )}
+            </View>
+          )}
         </View>
       </View>
 

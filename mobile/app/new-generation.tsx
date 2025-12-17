@@ -1,3 +1,4 @@
+import * as FileSystem from "expo-file-system/legacy";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -8,7 +9,14 @@ import {
   setDoc,
 } from "firebase/firestore";
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { auth, db } from "../src/firebase";
 import { JobDoc } from "../src/models";
 import { uploadInputImage } from "../src/storage/uploadInputImage";
@@ -29,13 +37,24 @@ export default function NewGenerationScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: "images",
       allowsEditing: true,
       quality: 0.8,
+      base64: true,
     });
 
     if (!result.canceled) {
-      setSelectedImageUri(result.assets[0].uri);
+      const asset = result.assets[0];
+      // On iOS we can get `ph://` URIs; convert to a real file:// by exporting base64.
+      if (asset.base64) {
+        const tempUri = `${FileSystem.cacheDirectory}picked-${Date.now()}.jpg`;
+        await FileSystem.writeAsStringAsync(tempUri, asset.base64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        setSelectedImageUri(tempUri);
+      } else {
+        setSelectedImageUri(asset.uri);
+      }
     }
   };
 
@@ -47,12 +66,23 @@ export default function NewGenerationScreen() {
     }
 
     const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: "images",
       allowsEditing: true,
       quality: 0.8,
+      base64: true,
     });
 
     if (!result.canceled) {
-      setSelectedImageUri(result.assets[0].uri);
+      const asset = result.assets[0];
+      if (asset.base64) {
+        const tempUri = `${FileSystem.cacheDirectory}captured-${Date.now()}.jpg`;
+        await FileSystem.writeAsStringAsync(tempUri, asset.base64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        setSelectedImageUri(tempUri);
+      } else {
+        setSelectedImageUri(asset.uri);
+      }
     }
   };
 
@@ -274,10 +304,16 @@ export default function NewGenerationScreen() {
             borderRadius: 999,
             backgroundColor: "#22c55e",
             alignItems: "center",
-            opacity: selectedStyle && !isSubmitting ? 1 : 0.8,
+            opacity: isSubmitting ? 0.7 : 1,
+            flexDirection: "row",
+            justifyContent: "center",
+            gap: 10,
           }}
-          disabled={!selectedStyle || isSubmitting}
+          disabled={isSubmitting}
         >
+          {isSubmitting && (
+            <ActivityIndicator size="small" color="#022c22" />
+          )}
           <Text
             style={{
               color: "#022c22",
@@ -285,7 +321,7 @@ export default function NewGenerationScreen() {
               fontSize: 16,
             }}
           >
-            Generuj
+            {isSubmitting ? "Generuję..." : "Generuj"}
           </Text>
         </Pressable>
        
