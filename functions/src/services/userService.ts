@@ -43,3 +43,33 @@ export async function consumeUserLimit(userId: string): Promise<void> {
   });
 }
 
+/**
+ * Refund a previously consumed daily usage (best-effort).
+ * This is used when a generation fails after we already consumed the limit.
+ */
+export async function refundUserLimit(userId: string): Promise<void> {
+  const userRef = db.collection("users").doc(userId);
+  const today = getTodayKey();
+
+  await db.runTransaction(async (tx) => {
+    const userSnapshot = await tx.get(userRef);
+    if (!userSnapshot.exists) {
+      // nothing to refund
+      return;
+    }
+
+    const user = userSnapshot.data() as UserDoc;
+    const lastUsageDate = user.lastUsageDate ?? null;
+    const usedToday = user.usedToday ?? 0;
+
+    // Only refund for today's counter
+    if (lastUsageDate !== today) return;
+    if (usedToday <= 0) return;
+
+    tx.update(userRef, {
+      usedToday: usedToday - 1,
+      lastUsageDate: today,
+    });
+  });
+}
+

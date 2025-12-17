@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import {
   collection,
@@ -6,7 +7,6 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { Image } from "expo-image";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import { auth, db } from "../src/firebase";
 import { useStorageDownloadUrl } from "../src/hooks/useStorageDownloadUrl";
+import { useUserLimit } from "../src/hooks/useUserLimit";
 import { GenerationDoc } from "../src/models";
 
 type HistoryItem = {
@@ -56,6 +57,10 @@ export default function HistoryScreen() {
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const currentUserId = auth.currentUser?.uid ?? null;
+  const { dailyLimit, usedToday, isLoading: isLoadingLimit } =
+    useUserLimit(currentUserId);
+  const dailyLimitLabel = dailyLimit > 0 ? String(dailyLimit) : "∞";
 
   useEffect(() => {
     const currentUser = auth.currentUser;
@@ -198,6 +203,23 @@ export default function HistoryScreen() {
           </Text>
           <Text style={{ color: "#9ca3af", marginTop: 4, fontSize: 14 }}>
             Przeglądaj historię wygenerowanych grafik.
+          </Text>
+        </View>
+
+        {/* Pasek limitu */}
+        <View
+          style={{
+            padding: 12,
+            borderRadius: 12,
+            backgroundColor: "#0f172a",
+            borderWidth: 1,
+            borderColor: "#1f2937",
+          }}
+        >
+          <Text style={{ color: "#e5e7eb", fontSize: 13, fontWeight: "600" }}>
+            {isLoadingLimit
+              ? "Ładowanie limitu..."
+              : `Użyto: ${usedToday} / ${dailyLimitLabel} dzisiaj`}
           </Text>
         </View>
 

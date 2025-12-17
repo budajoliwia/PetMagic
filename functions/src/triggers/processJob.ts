@@ -5,12 +5,16 @@ import { db } from "../core/firebase";
 import { runStyleModel } from "../services/aiService";
 import { stylizeImage } from "../services/imageService";
 import { downloadBuffer, uploadBuffer } from "../services/storageService";
-import { consumeUserLimit, LimitExceededError } from "../services/userService";
+import {
+  consumeUserLimit,
+  LimitExceededError,
+  refundUserLimit,
+} from "../services/userService";
 import { JobDoc } from "../types";
 import {
-    mapProcessingErrorCode,
-    markJobError,
-    normalizeErrorMessage
+  mapProcessingErrorCode,
+  markJobError,
+  normalizeErrorMessage
 } from "../utils/errorUtils";
 import { getOutputImagePath } from "../utils/paths";
 
@@ -98,6 +102,16 @@ export const processJob = onDocumentCreated(
       });
 
     } catch (error) {
+      // Best-effort refund: failed generations should not consume daily usage.
+      try {
+        await refundUserLimit(jobData.userId);
+      } catch (refundError) {
+        logger.warn("Failed to refund user limit after job failure", {
+          jobId,
+          refundError: normalizeErrorMessage(refundError),
+        });
+      }
+
       logger.error("Job processing failed", { jobId, error: normalizeErrorMessage(error) });
       const code = mapProcessingErrorCode(error);
       await markJobError(

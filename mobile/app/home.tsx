@@ -1,15 +1,14 @@
 import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
-import { auth, db } from "../src/firebase";
-import { UserDoc } from "../src/models";
+import { auth } from "../src/firebase";
+import { useUserLimit } from "../src/hooks/useUserLimit";
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [userDoc, setUserDoc] = useState<UserDoc | null>(null);
-  const [isFetchingUserDoc, setIsFetchingUserDoc] = useState(true);
+  const [userId, setUserId] = useState<string | null>(auth.currentUser?.uid ?? null);
+  const { dailyLimit, usedToday, isLoading: isFetchingUserDoc } = useUserLimit(userId);
 
   useEffect(() => {
     let isMounted = true;
@@ -17,38 +16,17 @@ export default function HomeScreen() {
 
     if (!currentUser) {
       router.replace("/");
-      setIsFetchingUserDoc(false);
       return;
     }
 
-    const fetchUserDoc = async () => {
-      try {
-        const snapshot = await getDoc(doc(db, "users", currentUser.uid));
-        if (snapshot.exists() && isMounted) {
-          setUserDoc(snapshot.data() as UserDoc);
-        } else if (!snapshot.exists()) {
-          console.warn("User document missing for", currentUser.uid);
-        }
-      } catch (error) {
-        console.error("Failed to load user document", error);
-      } finally {
-        if (isMounted) {
-          setIsFetchingUserDoc(false);
-        }
-      }
-    };
-
-    fetchUserDoc();
+    if (isMounted) setUserId(currentUser.uid);
 
     return () => {
       isMounted = false;
     };
   }, [router]);
 
-  // Placeholder values – docelowo pobierane z Firestore (users/{uid})
-  const dailyLimit = userDoc?.dailyLimit ?? 0;
-  const usedToday = userDoc?.usedToday ?? 0;
-  const remaining = Math.max(dailyLimit - usedToday, 0);
+  const dailyLimitLabel = dailyLimit > 0 ? String(dailyLimit) : "∞";
 
   const handleLogout = async () => {
     try {
@@ -136,13 +114,7 @@ export default function HomeScreen() {
             ) : (
               <>
                 <Text style={{ color: "white", fontSize: 22, fontWeight: "700" }}>
-                  Dzienny limit: {dailyLimit}
-                </Text>
-                <Text style={{ color: "#9ca3af", fontSize: 16 }}>
-                  Zużyto dziś: {usedToday}
-                </Text>
-                <Text style={{ color: "#22c55e", fontSize: 16, fontWeight: "600" }}>
-                  Zostało: {remaining}
+                  Użyto: {usedToday} / {dailyLimitLabel} dzisiaj
                 </Text>
               </>
             )}
