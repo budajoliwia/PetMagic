@@ -8,7 +8,7 @@ import {
   serverTimestamp,
   setDoc,
 } from "firebase/firestore";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -20,14 +20,23 @@ import {
 } from "react-native";
 import { auth, db } from "../src/firebase";
 import { useUserLimit } from "../src/hooks/useUserLimit";
-import { JobDoc } from "../src/models";
+import { JobDoc, JobType } from "../src/models";
 import { uploadInputImage } from "../src/storage/uploadInputImage";
 
-const STYLES = ["Sticker", "Cartoon", "Oil Painting", "Line Art"] as const;
+const TYPE_OPTIONS: { label: string; value: JobType }[] = [
+  { label: "Sticker", value: "sticker" },
+  { label: "Image", value: "image" },
+];
+
+const STYLES_BY_TYPE: Record<JobType, string[]> = {
+  sticker: ["Cartoon", "Kawaii", "Line Art", "Vector Art", "Pixel Art"],
+  image: ["Cartoon", "Oil Painting", "Line Art", "Vector Art", "Pixel Art"],
+};
 
 export default function NewGenerationScreen() {
   const router = useRouter();
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
+  const [jobType, setJobType] = useState<JobType>("sticker");
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -35,6 +44,18 @@ export default function NewGenerationScreen() {
   const { dailyLimit, usedToday, isLoading: isLoadingLimit } =
     useUserLimit(currentUserId);
   const isLimitReached = dailyLimit > 0 && usedToday >= dailyLimit;
+
+  const availableStyles = STYLES_BY_TYPE[jobType];
+
+  // Ensure selected style belongs to current type
+  useEffect(() => {
+    if (selectedStyle && !availableStyles.includes(selectedStyle)) {
+      setSelectedStyle(availableStyles[0] ?? null);
+    }
+    if (!selectedStyle && availableStyles.length > 0) {
+      setSelectedStyle(availableStyles[0]);
+    }
+  }, [jobType, availableStyles, selectedStyle]);
 
   const pickFromGallery = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -147,7 +168,7 @@ export default function NewGenerationScreen() {
 
       const jobPayload: Omit<JobDoc, "resultGenerationId"> = {
         userId: currentUser.uid,
-        type: "GENERATE_STICKER",
+        type: jobType,
         inputImagePath,
         style: selectedStyle,
         status: "queued",
@@ -192,8 +213,49 @@ export default function NewGenerationScreen() {
           Nowa generacja
         </Text>
         <Text style={{ color: "#9ca3af", marginTop: 4 }}>
-          Wybierz zdjęcie swojego pupila i styl grafiki.
+          Wybierz zdjęcie swojego pupila, rodzaj grafiki i styl.
         </Text>
+      </View>
+
+      {/* Rodzaj grafiki */}
+      <View style={{ gap: 12 }}>
+        <Text
+          style={{
+            fontSize: 18,
+            fontWeight: "600",
+            color: "white",
+          }}
+        >
+          0. Rodzaj
+        </Text>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          {TYPE_OPTIONS.map((opt) => {
+            const isActive = jobType === opt.value;
+            return (
+              <Pressable
+                key={opt.value}
+                onPress={() => setJobType(opt.value)}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor: isActive ? "#22c55e" : "#374151",
+                  backgroundColor: isActive ? "#064e3b" : "#020617",
+                }}
+              >
+                <Text
+                  style={{
+                    color: isActive ? "#bbf7d0" : "#e5e7eb",
+                    fontSize: 14,
+                  }}
+                >
+                  {opt.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
 
       {/* Wybór zdjęcia */}
@@ -281,7 +343,7 @@ export default function NewGenerationScreen() {
             gap: 8,
           }}
         >
-          {STYLES.map((style) => {
+          {availableStyles.map((style) => {
             const isActive = selectedStyle === style;
             return (
               <Pressable

@@ -18,7 +18,7 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == "queued"
-        && request.resource.data.type == "GENERATE_STICKER"
+        && request.resource.data.type in ["sticker", "image"]
         && request.resource.data.inputImagePath is string
         && request.resource.data.style is string
         && !( "errorCode" in request.resource.data )

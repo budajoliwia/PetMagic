@@ -312,6 +312,11 @@ export default function HistoryScreen() {
                   >
                     {item.data.style}
                   </Text>
+                  {item.data.type && (
+                    <Text style={{ color: "#a5b4fc", fontSize: 11 }}>
+                      {item.data.type === "sticker" ? "Sticker" : "Image"}
+                    </Text>
+                  )}
                   <Text style={{ color: "#6b7280", fontSize: 11 }}>
                     {formatCreatedAt(item.data)}
                   </Text>

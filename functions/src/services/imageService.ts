@@ -1,26 +1,16 @@
 import sharp from "sharp";
 
-const STYLE_TINTS: Record<string, string> = {
-  Sticker: "#f472b6",
-  Cartoon: "#60a5fa",
-  "Oil Painting": "#fbbf24",
-  "Line Art": "#a78bfa",
-};
-
-export async function stylizeImage(
+/**
+ * Normalize model output: resize to max 1024px (fit: inside) and ensure format.
+ * - Stickers should stay PNG (transparent if provided by the model).
+ * - Images can be left as-is, but we convert to PNG for consistency.
+ */
+export async function normalizeOutput(
   buffer: Buffer,
-  style: string
+  forcePng = true
 ): Promise<Buffer> {
-  const tintColor = STYLE_TINTS[style] ?? "#94a3b8";
-
-  return sharp(buffer)
-    .resize({
-      width: 1024,
-      height: 1024,
-      fit: "inside",
-    })
-    .tint(tintColor)
-    .png()
-    .toBuffer();
+  const img = sharp(buffer);
+  const pipeline = img.resize({ width: 1024, height: 1024, fit: "inside" });
+  return forcePng ? pipeline.png().toBuffer() : pipeline.jpeg({ quality: 90 }).toBuffer();
 }
 

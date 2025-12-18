@@ -2,8 +2,8 @@ import { FieldValue } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { db } from "../core/firebase";
-import { runStyleModel } from "../services/aiService";
-import { stylizeImage } from "../services/imageService";
+import { generateImageFromInput } from "../services/aiService";
+import { normalizeOutput } from "../services/imageService";
 import { downloadBuffer, uploadBuffer } from "../services/storageService";
 import {
   consumeUserLimit,
@@ -63,24 +63,24 @@ export const processJob = onDocumentCreated(
       // Download Input
       const inputBuffer = await downloadBuffer(jobData.inputImagePath);
 
-      // Call AI
-      const aiResponse = await runStyleModel({
-        jobId,
+      const rawType = (jobData as any).type;
+      const jobType: "sticker" | "image" =
+        rawType === "image" ? "image" : "sticker";
+
+      const outputBuffer = await generateImageFromInput({
+        inputImage: inputBuffer,
         style: jobData.style,
-        userId: jobData.userId,
+        type: jobType,
       });
-
-      logger.info("AI response received", { jobId, aiResponse });
-
-      // Process Image
-      const outputBuffer = await stylizeImage(inputBuffer, jobData.style);
 
       // Upload Output
       const generationRef = db.collection("generations").doc();
       const generationId = generationRef.id;
       const outputPath = getOutputImagePath(jobData.userId, generationId);
 
-      await uploadBuffer(outputPath, outputBuffer);
+      // Stickers: enforce PNG; images can stay PNG for consistency.
+      const finalBuffer = await normalizeOutput(outputBuffer, jobType === "sticker");
+      await uploadBuffer(outputPath, finalBuffer);
 
       // Save Generation
       await generationRef.set({
@@ -88,6 +88,7 @@ export const processJob = onDocumentCreated(
         jobId,
         inputImagePath: jobData.inputImagePath,
         outputImagePath: outputPath,
+        type: jobType,
         style: jobData.style,
         createdAt: FieldValue.serverTimestamp(),
         title: `Stylized ${jobData.style}`,
