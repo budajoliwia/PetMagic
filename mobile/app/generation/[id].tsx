@@ -1,4 +1,9 @@
+import * as FileSystem from "expo-file-system/legacy";
+import { Image } from "expo-image";
+import * as MediaLibrary from "expo-media-library";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as Sharing from "expo-sharing";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -8,8 +13,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { doc, getDoc } from "firebase/firestore";
-import { Image } from "expo-image";
 import { db } from "../../src/firebase";
 import { useStorageDownloadUrl } from "../../src/hooks/useStorageDownloadUrl";
 import { GenerationDoc } from "../../src/models";
@@ -66,8 +69,71 @@ export default function GenerationDetailScreen() {
     }
   };
 
-  const handleStubAction = (label: string) => {
-    Alert.alert("Wkrótce", `Akcja „${label}” będzie dostępna w kolejnej wersji.`);
+  const getLocalOutputFile = async (): Promise<string> => {
+    if (!outputUrl) {
+      throw new Error("Brak URL do wygenerowanego obrazka.");
+    }
+    const fileName = `generation-${typeof id === "string" ? id : "unknown"}.png`;
+    const localUri = `${FileSystem.cacheDirectory}${fileName}`;
+
+    const info = await FileSystem.getInfoAsync(localUri);
+    if (info.exists) return localUri;
+
+    const res = await FileSystem.downloadAsync(outputUrl, localUri);
+    return res.uri;
+  };
+
+  const handleSaveToGallery = async () => {
+    try {
+      const permission = await MediaLibrary.requestPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("Brak uprawnień", "Aby zapisać obraz, zezwól na dostęp do galerii.");
+        return;
+      }
+
+      const localUri = await getLocalOutputFile();
+      await MediaLibrary.saveToLibraryAsync(localUri);
+      Alert.alert("Gotowe", "Zapisano do galerii.");
+    } catch (err) {
+      console.error("Failed to save image to gallery", err);
+      Alert.alert("Błąd", "Nie udało się zapisać obrazka do galerii.");
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      const available = await Sharing.isAvailableAsync();
+      if (!available) {
+        Alert.alert("Info", "Udostępnianie nie jest obsługiwane na tym urządzeniu.");
+        return;
+      }
+      const localUri = await getLocalOutputFile();
+      await Sharing.shareAsync(localUri, {
+        mimeType: "image/png",
+        dialogTitle: "Udostępnij wygenerowaną grafikę",
+      });
+      // Expo Sharing API does not reliably indicate whether the user completed or cancelled sharing.
+      // We show a neutral confirmation that the sheet was displayed and closed.
+      Alert.alert("Info", "Zamknięto okno udostępniania.");
+    } catch (err) {
+      console.error("Failed to share image", err);
+      Alert.alert("Błąd", "Nie udało się udostępnić obrazka.");
+    }
+  };
+
+  const toggleFavorite = async () => {
+    if (!id || typeof id !== "string") return;
+
+    const next = !isFavorite;
+    setIsFavorite(next);
+
+    try {
+      await updateDoc(doc(db, "generations", id), { isFavorite: next });
+    } catch (err) {
+      console.error("Failed to update favorite state", err);
+      setIsFavorite(!next);
+      Alert.alert("Błąd", "Nie udało się zaktualizować ulubionych. Spróbuj ponownie.");
+    }
   };
 
   if (isLoading) {
@@ -200,7 +266,7 @@ export default function GenerationDetailScreen() {
       {/* Akcje */}
       <View style={{ gap: 12, marginBottom: 16 }}>
         <Pressable
-          onPress={() => handleStubAction("Pobierz / Zapisz")}
+          onPress={handleSaveToGallery}
           style={{
             paddingVertical: 14,
             borderRadius: 999,
@@ -220,7 +286,7 @@ export default function GenerationDetailScreen() {
         </Pressable>
 
         <Pressable
-          onPress={() => handleStubAction("Udostępnij")}
+          onPress={handleShare}
           style={{
             paddingVertical: 14,
             borderRadius: 999,
@@ -242,7 +308,7 @@ export default function GenerationDetailScreen() {
         </Pressable>
 
         <Pressable
-          onPress={() => setIsFavorite((prev) => !prev)}
+          onPress={toggleFavorite}
           style={{
             paddingVertical: 12,
             borderRadius: 999,

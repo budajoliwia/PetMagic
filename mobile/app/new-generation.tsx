@@ -12,6 +12,7 @@ import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -59,6 +60,10 @@ export default function NewGenerationScreen() {
   };
 
   const takePhoto = async () => {
+    if (Platform.OS === "web") {
+      Alert.alert("Info", "Aparat nie jest obsługiwany w trybie web. Użyj galerii.");
+      return;
+    }
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
       Alert.alert("Error", "Enable access to the camera to continue.");

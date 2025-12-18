@@ -78,13 +78,13 @@ export default function JobStatusScreen() {
     const status = job?.status;
     switch (status) {
       case "queued":
-        return "Queued";
+        return "W kolejce…";
       case "processing":
-        return "Processing";
+        return "Generuję…";
       case "done":
-        return "Done";
+        return "Gotowe";
       case "error":
-        return "Error";
+        return "Nie wyszło — spróbuj ponownie";
       default:
         return status ?? "Unknown";
     }
@@ -135,11 +135,7 @@ export default function JobStatusScreen() {
             <ActivityIndicator size="small" color="#22c55e" />
           )}
           <Text style={{ color: "#a5b4fc", fontSize: 14 }}>
-            {job?.status === "error"
-              ? "Generation failed"
-              : job?.status === "done"
-              ? "Done"
-              : "Creating generation..."}
+            {job?.status ? statusLabel : "W kolejce…"}
           </Text>
         </View>
 

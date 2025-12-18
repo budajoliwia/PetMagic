@@ -9,7 +9,12 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Potrzebujemy dostępu do aparatu, aby zrobić zdjęcie pupila do generacji.",
+        "NSPhotoLibraryUsageDescription": "Potrzebujemy dostępu do galerii, aby wybrać zdjęcie pupila do generacji.",
+        "NSPhotoLibraryAddUsageDescription": "Potrzebujemy dostępu do zapisu w galerii (opcjonalnie)."
+      }
     },
     "android": {
       "adaptiveIcon": {

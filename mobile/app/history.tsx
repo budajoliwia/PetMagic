@@ -57,6 +57,9 @@ export default function HistoryScreen() {
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<
+    "Wszystkie" | "Ulubione" | "Sticker" | "Cartoon"
+  >("Wszystkie");
   const currentUserId = auth.currentUser?.uid ?? null;
   const { dailyLimit, usedToday, isLoading: isLoadingLimit } =
     useUserLimit(currentUserId);
@@ -69,11 +72,15 @@ export default function HistoryScreen() {
       return;
     }
 
-    const q = query(
-      collection(db, "generations"),
+    const constraints = [
       where("userId", "==", currentUser.uid),
-      orderBy("createdAt", "desc")
-    );
+      orderBy("createdAt", "desc"),
+    ];
+    if (activeFilter === "Ulubione") {
+      constraints.splice(1, 0, where("isFavorite", "==", true));
+    }
+
+    const q = query(collection(db, "generations"), ...constraints);
 
     const unsubscribe = onSnapshot(
       q,
@@ -95,7 +102,7 @@ export default function HistoryScreen() {
     return () => {
       unsubscribe();
     };
-  }, [router]);
+  }, [router, activeFilter]);
 
   const renderEmptyState = () => {
     if (isLoading) {
@@ -233,8 +240,9 @@ export default function HistoryScreen() {
           }}
         >
           {["Wszystkie", "Ulubione", "Sticker", "Cartoon"].map((label) => (
-            <View
+            <Pressable
               key={label}
+              onPress={() => setActiveFilter(label as any)}
               style={{
                 paddingHorizontal: 10,
                 paddingVertical: 6,
@@ -242,11 +250,11 @@ export default function HistoryScreen() {
                 borderWidth: 1,
                 borderColor: "#1f2937",
                 backgroundColor:
-                  label === "Wszystkie" ? "#0f172a" : "transparent",
+                  label === activeFilter ? "#0f172a" : "transparent",
               }}
             >
               <Text style={{ color: "#e5e7eb", fontSize: 12 }}>{label}</Text>
-            </View>
+            </Pressable>
           ))}
         </View>
 

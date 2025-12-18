@@ -31,7 +31,12 @@ service cloud.firestore {
 
     match /generations/{genId} {
       allow read: if signedIn() && resource.data.userId == request.auth.uid;
-      allow create, update, delete: if false; // generacje tworzy backend
+      // generacje tworzy backend, ale user może oznaczyć/odznaczyć ulubione
+      allow create, delete: if false;
+      allow update: if signedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(["isFavorite"])
+        && request.resource.data.isFavorite is bool;
     }
   }
 }
