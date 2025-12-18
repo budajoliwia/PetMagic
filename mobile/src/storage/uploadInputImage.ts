@@ -1,4 +1,6 @@
 import * as FileSystem from "expo-file-system/legacy";
+import * as ImageManipulator from "expo-image-manipulator";
+import { Image as RNImage } from "react-native";
 import { auth, storage } from "../firebase";
 import { getInputImagePath } from "../storagePaths";
 
@@ -13,6 +15,46 @@ export async function uploadInputImage(
   const fileInfo = await FileSystem.getInfoAsync(uri);
   if (!fileInfo.exists) {
     throw new Error(`Selected image file not found. uriScheme=${scheme}`);
+  }
+
+  const getImageSizeAsync = (imageUri: string): Promise<{ width: number; height: number }> =>
+    new Promise((resolve, reject) => {
+      RNImage.getSize(
+        imageUri,
+        (width, height) => resolve({ width, height }),
+        (error) => reject(error)
+      );
+    });
+
+  // Resize (max long edge 1024px) + compress to JPEG quality 0.7 before upload.
+  let uploadUri = uri;
+  try {
+    const { width, height } = await getImageSizeAsync(uri);
+    const maxDim = Math.max(width, height);
+
+    const actions: ImageManipulator.Action[] = [];
+    if (maxDim > 1024) {
+      if (width >= height) {
+        actions.push({ resize: { width: 1024 } });
+      } else {
+        actions.push({ resize: { height: 1024 } });
+      }
+    }
+
+    const manipulated = await ImageManipulator.manipulateAsync(
+      uri,
+      actions,
+      {
+        compress: 0.7,
+        format: ImageManipulator.SaveFormat.JPEG,
+      }
+    );
+
+    // Use the resized/compressed file for upload.
+    uploadUri = manipulated.uri;
+  } catch {
+    // If we cannot read size / manipulate (rare), fall back to uploading the original.
+    uploadUri = uri;
   }
 
   const bucket = storage.app.options.storageBucket;
@@ -38,7 +80,7 @@ export async function uploadInputImage(
     bucket
   )}/o?uploadType=media&name=${encodeURIComponent(inputImagePath)}`;
 
-  const uploadPromise = FileSystem.uploadAsync(url, uri, {
+  const uploadPromise = FileSystem.uploadAsync(url, uploadUri, {
     httpMethod: "POST",
     uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
     headers: {
