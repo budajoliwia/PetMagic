@@ -19,6 +19,7 @@ import {
   View,
 } from "react-native";
 import { auth, db } from "../src/firebase";
+import { useUserLimit } from "../src/hooks/useUserLimit";
 import { JobDoc } from "../src/models";
 import { uploadInputImage } from "../src/storage/uploadInputImage";
 
@@ -29,6 +30,11 @@ export default function NewGenerationScreen() {
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const currentUserId = auth.currentUser?.uid ?? null;
+  const { dailyLimit, usedToday, isLoading: isLoadingLimit } =
+    useUserLimit(currentUserId);
+  const isLimitReached = dailyLimit > 0 && usedToday >= dailyLimit;
 
   const pickFromGallery = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -95,6 +101,13 @@ export default function NewGenerationScreen() {
     const currentUser = auth.currentUser;
     if (!currentUser) {
       Alert.alert("Error", "Please login to generate a new generation.");
+      return;
+    }
+    if (!isLoadingLimit && isLimitReached) {
+      Alert.alert(
+        "Limit przekroczony",
+        `Wykorzystałeś dzienny limit generacji (${usedToday} / ${dailyLimit}). Spróbuj jutro.`
+      );
       return;
     }
     if(!selectedStyle){
@@ -299,6 +312,11 @@ export default function NewGenerationScreen() {
 
       {/* Podsumowanie + Generuj */}
       <View style={{ marginTop: "auto", gap: 12 }}>
+        {!isLoadingLimit && dailyLimit > 0 && (
+          <Text style={{ color: isLimitReached ? "#fca5a5" : "#9ca3af" }}>
+            Limit dzienny: {usedToday} / {dailyLimit}
+          </Text>
+        )}
         <Text style={{ color: "#9ca3af" }}>
           Wybrany styl: {selectedStyle ?? "brak (wybierz powyżej)"}
         </Text>
@@ -309,12 +327,12 @@ export default function NewGenerationScreen() {
             borderRadius: 999,
             backgroundColor: "#22c55e",
             alignItems: "center",
-            opacity: isSubmitting ? 0.7 : 1,
+            opacity: isSubmitting || (!isLoadingLimit && isLimitReached) ? 0.7 : 1,
             flexDirection: "row",
             justifyContent: "center",
             gap: 10,
           }}
-          disabled={isSubmitting}
+          disabled={isSubmitting || (!isLoadingLimit && isLimitReached)}
         >
           {isSubmitting && (
             <ActivityIndicator size="small" color="#022c22" />
@@ -326,7 +344,11 @@ export default function NewGenerationScreen() {
               fontSize: 16,
             }}
           >
-            {isSubmitting ? "Generuję..." : "Generuj"}
+            {isSubmitting
+              ? "Generuję..."
+              : !isLoadingLimit && isLimitReached
+              ? "Limit osiągnięty"
+              : "Generuj"}
           </Text>
         </Pressable>
        
