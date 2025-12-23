@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system/legacy";
 import { Image } from "expo-image";
 import * as MediaLibrary from "expo-media-library";
@@ -8,18 +9,20 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Pressable,
-  ScrollView,
   Text,
   View,
 } from "react-native";
 import { db } from "../../src/firebase";
 import { useStorageDownloadUrl } from "../../src/hooks/useStorageDownloadUrl";
 import { GenerationDoc } from "../../src/models";
+import { useAppTheme } from "../../src/theme";
+import { Button } from "../../src/ui/Button";
+import { Screen } from "../../src/ui/Screen";
 
 export default function GenerationDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
+  const { colors } = useAppTheme();
 
   const [generation, setGeneration] = useState<GenerationDoc | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -138,32 +141,19 @@ export default function GenerationDetailScreen() {
 
   if (isLoading) {
     return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#020617",
-          gap: 12,
-          padding: 16,
-        }}
-      >
-        <ActivityIndicator size="large" color="#22c55e" />
-        <Text style={{ color: "#9ca3af", fontSize: 14 }}>
-          Ładowanie generacji...
-        </Text>
-      </View>
+      <Screen scroll={false} padding={16}>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 12 }}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={{ color: colors.muted, fontSize: 14 }}>
+            Ładowanie generacji...
+          </Text>
+        </View>
+      </Screen>
     );
   }
 
   return (
-    <ScrollView
-      contentContainerStyle={{
-        flexGrow: 1,
-        padding: 16,
-        backgroundColor: "#020617",
-      }}
-    >
+    <Screen padding={16} contentContainerStyle={{ gap: 14 }}>
       {/* Nagłówek */}
       <View
         style={{
@@ -172,23 +162,19 @@ export default function GenerationDetailScreen() {
           marginBottom: 16,
         }}
       >
-        <Pressable
+        <Button
+          title="Wstecz"
+          variant="ghost"
+          size="md"
           onPress={() => router.back()}
-          style={{
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-            borderRadius: 999,
-            backgroundColor: "#0f172a",
-            marginRight: 12,
-          }}
-        >
-          <Text style={{ color: "#e5e7eb" }}>Wstecz</Text>
-        </Pressable>
+          left={<Ionicons name="arrow-back-outline" size={18} color={colors.text} />}
+          style={{ marginRight: 12 }}
+        />
         <Text
           style={{
-            color: "white",
+            color: colors.text,
             fontSize: 20,
-            fontWeight: "700",
+            fontWeight: "800",
           }}
         >
           Szczegóły generacji
@@ -199,9 +185,9 @@ export default function GenerationDetailScreen() {
       <View
         style={{
           borderRadius: 24,
-          backgroundColor: "#0f172a",
+          backgroundColor: colors.card,
           borderWidth: 1,
-          borderColor: "#1f2937",
+          borderColor: colors.border,
           padding: 12,
           marginBottom: 16,
         }}
@@ -209,7 +195,7 @@ export default function GenerationDetailScreen() {
         <View
           style={{
             borderRadius: 20,
-            backgroundColor: "#111827",
+            backgroundColor: colors.border,
             aspectRatio: 1,
             alignItems: "center",
             justifyContent: "center",
@@ -224,11 +210,11 @@ export default function GenerationDetailScreen() {
             />
           ) : (
             <View style={{ alignItems: "center", gap: 6 }}>
-              <Text style={{ color: "#6b7280", fontSize: 14 }}>
+              <Text style={{ color: colors.subtle, fontSize: 14 }}>
                 {isOutputLoading ? "Ładowanie podglądu..." : "Brak podglądu"}
               </Text>
               {!!outputError && (
-                <Text style={{ color: "#fca5a5", fontSize: 12 }}>
+                <Text style={{ color: colors.danger, fontSize: 12 }}>
                   {outputError}
                 </Text>
               )}
@@ -239,110 +225,53 @@ export default function GenerationDetailScreen() {
 
       {/* Meta informacje */}
       <View style={{ gap: 4, marginBottom: 24 }}>
-        <Text style={{ color: "#e5e7eb", fontSize: 14 }}>
-          ID generacji:{" "}
-          <Text style={{ color: "#9ca3af" }}>
-            {typeof id === "string" ? id : "brak"}
-          </Text>
-        </Text>
-        <Text style={{ color: "#e5e7eb", fontSize: 14 }}>
+        <Text style={{ color: colors.text, fontSize: 14 }}>
           Styl:{" "}
-          <Text style={{ color: "#a5b4fc" }}>
+          <Text style={{ color: colors.muted }}>
             {generation?.style ?? "nieznany"}
           </Text>
         </Text>
-        <Text style={{ color: "#e5e7eb", fontSize: 14 }}>
+        <Text style={{ color: colors.text, fontSize: 14 }}>
           Data:{" "}
-          <Text style={{ color: "#9ca3af" }}>{formatCreatedAt()}</Text>
+          <Text style={{ color: colors.muted }}>{formatCreatedAt()}</Text>
         </Text>
-        {generation?.jobId && (
-          <Text style={{ color: "#e5e7eb", fontSize: 14 }}>
-            Job ID:{" "}
-            <Text style={{ color: "#9ca3af" }}>{generation.jobId}</Text>
-          </Text>
-        )}
       </View>
 
       {/* Akcje */}
       <View style={{ gap: 12, marginBottom: 16 }}>
-        <Pressable
+        <Button
+          title="Pobierz / Zapisz"
           onPress={handleSaveToGallery}
-          style={{
-            paddingVertical: 14,
-            borderRadius: 999,
-            backgroundColor: "#22c55e",
-            alignItems: "center",
-          }}
-        >
-          <Text
-            style={{
-              color: "#022c22",
-              fontWeight: "700",
-              fontSize: 15,
-            }}
-          >
-            Pobierz / Zapisz
-          </Text>
-        </Pressable>
+          left={<Ionicons name="download-outline" size={18} color={colors.onPrimary} />}
+        />
 
-        <Pressable
+        <Button
+          title="Udostępnij"
+          variant="secondary"
           onPress={handleShare}
-          style={{
-            paddingVertical: 14,
-            borderRadius: 999,
-            backgroundColor: "#0f172a",
-            alignItems: "center",
-            borderWidth: 1,
-            borderColor: "#1f2937",
-          }}
-        >
-          <Text
-            style={{
-              color: "#e5e7eb",
-              fontWeight: "600",
-              fontSize: 15,
-            }}
-          >
-            Udostępnij
-          </Text>
-        </Pressable>
+          left={<Ionicons name="share-outline" size={18} color={colors.text} />}
+        />
 
-        <Pressable
+        <Button
+          title={isFavorite ? "Usuń z ulubionych" : "Dodaj do ulubionych"}
+          variant={isFavorite ? "primary" : "secondary"}
           onPress={toggleFavorite}
-          style={{
-            paddingVertical: 12,
-            borderRadius: 999,
-            backgroundColor: isFavorite ? "#fbbf24" : "#0f172a",
-            alignItems: "center",
-            borderWidth: 1,
-            borderColor: isFavorite ? "#facc15" : "#1f2937",
-          }}
-        >
-          <Text
-            style={{
-              color: isFavorite ? "#422006" : "#e5e7eb",
-              fontWeight: "600",
-              fontSize: 14,
-            }}
-          >
-            {isFavorite ? "Usuń z ulubionych" : "Dodaj do ulubionych"}
-          </Text>
-        </Pressable>
+          left={
+            <Ionicons
+              name={isFavorite ? "heart" : "heart-outline"}
+              size={18}
+              color={isFavorite ? colors.onPrimary : colors.text}
+            />
+          }
+        />
       </View>
 
       {error && (
-        <Text style={{ color: "#fecaca", fontSize: 12, marginTop: 8 }}>
+        <Text style={{ color: colors.danger, fontSize: 12, marginTop: 8 }}>
           {error}
         </Text>
       )}
-
-      <Text style={{ color: "#6b7280", fontSize: 12, marginTop: 8 }}>
-        Dane pochodzą z{" "}
-        <Text style={{ fontWeight: "600" }}>generations/{id}</Text>. W
-        przyszłości ten ekran wyświetli prawdziwy obrazek na podstawie
-        outputImagePath.
-      </Text>
-    </ScrollView>
+    </Screen>
   );
 }
 

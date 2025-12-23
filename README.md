@@ -60,6 +60,22 @@ npm run mobile
 ```
 *(To odpali Expo. Zeskanuj kod QR telefonem lub naciśnij 'a' żeby odpalić na Android Emulatorze).*
 
+### 3a. Ważne: host emulatorów na fizycznym telefonie (Expo Go)
+Jeśli odpalasz na **fizycznym urządzeniu** (np. iPhone), musisz wskazać IP komputera w sieci Wi‑Fi.
+
+- Expo w terminalu pokazuje coś typu: `Metro waiting on exp://192.168.X.Y:8081` → to jest IP, którego użyj.
+- Ustaw zmienne środowiskowe i zrestartuj Expo:
+
+```bash
+# PowerShell
+$env:EXPO_PUBLIC_EMULATOR_HOST="192.168.X.Y"
+$env:EXPO_PUBLIC_USE_EMULATORS="1"
+
+npm run mobile
+```
+
+Dla wygody masz template w `mobile/env.example`. Skopiuj go do `mobile/.env` i wpisz swoje IP (plik `.env` jest ignorowany w repo), albo ustaw te zmienne w shellu jak wyżej.
+
 ---
 
 ## 🚀 Jak wrzucić na Produkcję (Deploy)

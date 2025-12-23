@@ -1,13 +1,18 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import React, { useState } from "react";
-import { ActivityIndicator, Alert, Button, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from "react-native";
 import { auth, db } from "../src/firebase";
 import { UserDoc } from "../src/models";
+import { useAppTheme } from "../src/theme";
+import { Button } from "../src/ui/Button";
+import { Screen } from "../src/ui/Screen";
 
 export default function AuthScreen() {
   const router = useRouter();
+  const { colors, isDark, toggle } = useAppTheme();
   const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -99,100 +104,158 @@ export default function AuthScreen() {
   };
 
   return (
-    <View
-      style={{
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "#020617",
-        padding: 20,
-      }}
-    >
-      <Text style={{ color: "white", fontSize: 24, fontWeight: "600", marginBottom: 20 }}>
-        PetMagicAI 🐾
-      </Text>
-
-      <Text style={{ color: "white", fontSize: 18, marginBottom: 20 }}>
-        {isRegistering ? "Create Account" : "Welcome Back"}
-      </Text>
-
-      <TextInput
-        placeholder="Email"
-        placeholderTextColor="#9ca3af"
-        value={email}
-        onChangeText={setEmail}
-        style={{
-          width: "100%",
-          backgroundColor: "#1e293b",
-          color: "white",
-          padding: 15,
-          borderRadius: 8,
-          marginBottom: 10,
-        }}
-        autoCapitalize="none"
-        editable={!isLoading}
-      />
-
-      <TextInput
-        placeholder="Password"
-        placeholderTextColor="#9ca3af"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        style={{
-          width: "100%",
-          backgroundColor: "#1e293b",
-          color: "white",
-          padding: 15,
-          borderRadius: 8,
-          marginBottom: isRegistering ? 10 : 20,
-        }}
-        editable={!isLoading}
-      />
-
-      {isRegistering && (
-        <TextInput
-          placeholder="Confirm Password"
-          placeholderTextColor="#9ca3af"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          secureTextEntry
-          style={{
-            width: "100%",
-            backgroundColor: "#1e293b",
-            color: "white",
-            padding: 15,
-            borderRadius: 8,
-            marginBottom: 20,
-          }}
-          editable={!isLoading}
-        />
-      )}
-
-      {isLoading ? (
-        <ActivityIndicator size="large" color="#ffffff" />
-      ) : (
-        <View style={{ width: "100%", gap: 10 }}>
-          <Button 
-            title={isRegistering ? "Sign Up" : "Sign In"} 
-            onPress={isRegistering ? handleSignUp : handleSignIn} 
-          />
-          
-          <TouchableOpacity 
-            onPress={() => {
-              setIsRegistering(!isRegistering);
-              // Reset errors or fields if desired
-            }}
-            style={{ alignItems: 'center', marginTop: 10 }}
+    <Screen scroll={false} padding={20}>
+      <View style={{ flex: 1, justifyContent: "center" }}>
+        <View style={{ alignItems: "flex-end", marginBottom: 8 }}>
+          <Pressable
+            onPress={toggle}
+            hitSlop={10}
+            style={({ pressed }) => ({
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.card,
+              opacity: pressed ? 0.85 : 1,
+            })}
           >
-            <Text style={{ color: '#9ca3af' }}>
-              {isRegistering 
-                ? "Already have an account? Sign In" 
-                : "Don't have an account? Sign Up"}
-            </Text>
-          </TouchableOpacity>
+            <Ionicons
+              name={isDark ? "sunny-outline" : "moon-outline"}
+              size={18}
+              color={colors.text}
+            />
+          </Pressable>
         </View>
-      )}
-    </View>
+
+        <View style={{ gap: 6, marginBottom: 18, alignItems: "center" }}>
+          <Text
+            style={{
+              color: colors.text,
+              fontSize: 30,
+              fontWeight: "900",
+              textAlign: "center",
+            }}
+          >
+            PetMagicAI
+          </Text>
+          <Text
+            style={{
+              color: colors.muted,
+              fontSize: 18,
+              fontWeight: "700",
+              textAlign: "center",
+            }}
+          >
+            {isRegistering ? "Utwórz konto" : "Zaloguj się"}
+          </Text>
+        </View>
+
+        <View
+          style={{
+            backgroundColor: colors.card,
+            borderRadius: 16,
+            padding: 16,
+            gap: 10,
+            borderWidth: 1,
+            borderColor: colors.border,
+          }}
+        >
+          <TextInput
+            placeholder="Email"
+            placeholderTextColor={colors.subtle}
+            value={email}
+            onChangeText={setEmail}
+            style={{
+              width: "100%",
+              backgroundColor: "transparent",
+              color: colors.text,
+              paddingVertical: 12,
+              paddingHorizontal: 12,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            editable={!isLoading}
+          />
+
+          <TextInput
+            placeholder="Hasło"
+            placeholderTextColor={colors.subtle}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            style={{
+              width: "100%",
+              backgroundColor: "transparent",
+              color: colors.text,
+              paddingVertical: 12,
+              paddingHorizontal: 12,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+            editable={!isLoading}
+          />
+
+          {isRegistering && (
+            <TextInput
+              placeholder="Powtórz hasło"
+              placeholderTextColor={colors.subtle}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              style={{
+                width: "100%",
+                backgroundColor: "transparent",
+                color: colors.text,
+                paddingVertical: 12,
+                paddingHorizontal: 12,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+              editable={!isLoading}
+            />
+          )}
+
+          {isLoading ? (
+            <View style={{ alignItems: "center", paddingVertical: 8 }}>
+              <ActivityIndicator size="small" color={colors.primary} />
+            </View>
+          ) : (
+            <>
+              <Button
+                title={isRegistering ? "Załóż konto" : "Zaloguj"}
+                onPress={isRegistering ? handleSignUp : handleSignIn}
+              />
+
+              <Pressable
+                onPress={() => setIsRegistering((v) => !v)}
+                style={({ pressed }) => ({
+                  alignItems: "center",
+                  paddingVertical: 10,
+                  opacity: pressed ? 0.7 : 1,
+                })}
+              >
+                <Text style={{ color: colors.muted, fontSize: 13, fontWeight: "600" }}>
+                  {isRegistering
+                    ? "Masz już konto? Zaloguj się"
+                    : "Nie masz konta? Załóż je"}
+                </Text>
+              </Pressable>
+            </>
+          )}
+        </View>
+
+        <Text style={{ color: colors.subtle, fontSize: 12, marginTop: 14 }}>
+          Korzystając z aplikacji akceptujesz zasady prywatności.
+        </Text>
+      </View>
+    </Screen>
   );
 }

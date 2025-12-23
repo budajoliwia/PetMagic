@@ -24,6 +24,9 @@ export const processJob = onDocumentCreated(
     region: "europe-central2",
     maxInstances: 10,
     secrets: ["OPENAI_API_KEY"],
+    // Image generation + Storage I/O can exceed the default ~60s in emulators/CF.
+    timeoutSeconds: 300,
+    memory: "2GiB",
   },
   async (event) => {
     const jobId = event.params.jobId as string;

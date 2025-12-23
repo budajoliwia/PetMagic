@@ -1,12 +1,19 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
-import React, { useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import React, { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { Alert, Pressable, Text, View } from "react-native";
 import { auth } from "../src/firebase";
 import { useUserLimit } from "../src/hooks/useUserLimit";
+import { useAppTheme } from "../src/theme";
+import { Button } from "../src/ui/Button";
+import { Screen } from "../src/ui/Screen";
 
 export default function HomeScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
+  const { colors, isDark, toggle } = useAppTheme();
   const [userId, setUserId] = useState<string | null>(auth.currentUser?.uid ?? null);
   const { dailyLimit, usedToday, isLoading: isFetchingUserDoc } = useUserLimit(userId);
 
@@ -28,7 +35,7 @@ export default function HomeScreen() {
 
   const dailyLimitLabel = dailyLimit > 0 ? String(dailyLimit) : "∞";
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       await signOut(auth);
       router.replace("/");
@@ -38,160 +45,122 @@ export default function HomeScreen() {
       console.error("Logout error", error);
       Alert.alert("Błąd", "Nie udało się wylogować. Spróbuj ponownie.");
     }
-  };
+  }, [router]);
 
-  return (
-    <ScrollView
-      contentContainerStyle={{
-        flexGrow: 1,
-        padding: 24,
-        backgroundColor: "#020617",
-      }}
-    >
-      <View style={{ gap: 24 }}>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <View>
-            <Text
-              style={{
-                color: "white",
-                fontSize: 28,
-                fontWeight: "700",
-                marginBottom: 4,
-              }}
-            >
-              PetMagicAI 🐾
-            </Text>
-            <Text style={{ color: "#9ca3af", fontSize: 16 }}>
-              Zamień zdjęcia swojego pupila w magiczne grafiki.
-            </Text>
-          </View>
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <Pressable
+            onPress={toggle}
+            hitSlop={10}
+            style={({ pressed }) => ({
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.card,
+              opacity: pressed ? 0.85 : 1,
+            })}
+          >
+            <Ionicons
+              name={isDark ? "sunny-outline" : "moon-outline"}
+              size={18}
+              color={colors.text}
+            />
+          </Pressable>
 
           <Pressable
             onPress={handleLogout}
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              borderRadius: 999,
+            hitSlop={10}
+            style={({ pressed }) => ({
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              alignItems: "center",
+              justifyContent: "center",
               borderWidth: 1,
-              borderColor: "#4b5563",
-              backgroundColor: "transparent",
-            }}
+              borderColor: colors.border,
+              backgroundColor: colors.card,
+              opacity: pressed ? 0.85 : 1,
+            })}
           >
-            <Text style={{ color: "#e5e7eb", fontSize: 12, fontWeight: "500" }}>
-              Wyloguj
-            </Text>
+            <Ionicons name="log-out-outline" size={18} color={colors.text} />
           </Pressable>
+        </View>
+      ),
+    });
+  }, [colors.border, colors.card, colors.text, handleLogout, isDark, navigation, toggle]);
+
+  return (
+    <Screen>
+      <View style={{ gap: 18 }}>
+        <View style={{ gap: 6 }}>
+          <Text style={{ color: colors.text, fontSize: 28, fontWeight: "800" }}>
+            PetMagicAI
+          </Text>
+          <Text style={{ color: colors.muted, fontSize: 15 }}>
+            Zamień zdjęcia pupila w nowoczesne grafiki.
+          </Text>
         </View>
 
         {/* Karta dziennego limitu */}
-          <View
-            style={{
-              backgroundColor: "#0f172a",
-              borderRadius: 16,
-              padding: 20,
-              gap: 8,
-            }}
-          >
-            <Text
-              style={{
-                color: "#e5e7eb",
-                fontSize: 16,
-                fontWeight: "600",
-              }}
-            >
-              Dzisiejszy limit
+        <View
+          style={{
+            backgroundColor: colors.card,
+            borderRadius: 16,
+            padding: 16,
+            gap: 8,
+            borderWidth: 1,
+            borderColor: colors.border,
+          }}
+        >
+          <Text style={{ color: colors.muted, fontSize: 13, fontWeight: "700" }}>
+            Dzisiejszy limit
+          </Text>
+          {isFetchingUserDoc ? (
+            <Text style={{ color: colors.subtle, fontSize: 14 }}>
+              Ładowanie limitu...
             </Text>
-            {isFetchingUserDoc ? (
-              <Text style={{ color: "#9ca3af", fontSize: 14 }}>
-                Ładowanie limitu...
-              </Text>
-            ) : (
-              <>
-                <Text style={{ color: "white", fontSize: 22, fontWeight: "700" }}>
-                  Użyto: {usedToday} / {dailyLimitLabel} dzisiaj
-                </Text>
-              </>
-            )}
-          </View>
+          ) : (
+            <Text style={{ color: colors.text, fontSize: 22, fontWeight: "800" }}>
+              {usedToday} / {dailyLimitLabel}
+            </Text>
+          )}
+        </View>
 
         {/* Główne CTA */}
-        <View style={{ gap: 12 }}>
-          <Text
-            style={{
-              color: "#e5e7eb",
-              fontSize: 16,
-              fontWeight: "600",
-            }}
-          >
-            Co chcesz zrobić?
+        <View style={{ gap: 10 }}>
+          <Text style={{ color: colors.muted, fontSize: 13, fontWeight: "700" }}>
+            Akcje
           </Text>
-
-          <Pressable
+          <Button
+            title="Stwórz nową grafikę"
             onPress={() => router.push("/new-generation")}
-            style={{
-              backgroundColor: "#22c55e",
-              borderRadius: 999,
-              paddingVertical: 16,
-              alignItems: "center",
-            }}
-          >
-            <Text
-              style={{
-                color: "black",
-                fontSize: 16,
-                fontWeight: "700",
-              }}
-            >
-              Stwórz nową grafikę
-            </Text>
-          </Pressable>
-
-          <Pressable
+            left={<Ionicons name="sparkles-outline" size={18} color={colors.onPrimary} />}
+          />
+          <Button
+            title="Historia generacji"
+            variant="secondary"
             onPress={() => router.push("/history")}
-            style={{
-              backgroundColor: "#0f172a",
-              borderRadius: 999,
-              paddingVertical: 14,
-              alignItems: "center",
-              borderWidth: 1,
-              borderColor: "#1f2937",
-            }}
-          >
-            <Text
-              style={{
-                color: "#e5e7eb",
-                fontSize: 15,
-                fontWeight: "500",
-              }}
-            >
-              Zobacz historię generacji
-            </Text>
-          </Pressable>
+            left={<Ionicons name="time-outline" size={18} color={colors.text} />}
+          />
         </View>
 
         {/* Placeholder ostatnich generacji */}
-        <View style={{ marginTop: 16, gap: 12 }}>
-          <Text
-            style={{
-              color: "#e5e7eb",
-              fontSize: 16,
-              fontWeight: "600",
-            }}
-          >
+        <View style={{ marginTop: 10, gap: 6 }}>
+          <Text style={{ color: colors.muted, fontSize: 13, fontWeight: "700" }}>
             Ostatnie generacje
           </Text>
-          <Text style={{ color: "#6b7280", fontSize: 13 }}>
-            W przyszłości pojawią się tu miniaturki Twoich ostatnich grafik.
+          <Text style={{ color: colors.subtle, fontSize: 13 }}>
+            Tu wkrótce pojawią się miniaturki ostatnich prac.
           </Text>
         </View>
       </View>
-    </ScrollView>
+    </Screen>
   );
 }
 

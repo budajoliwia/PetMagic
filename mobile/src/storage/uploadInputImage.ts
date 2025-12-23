@@ -2,6 +2,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import * as ImageManipulator from "expo-image-manipulator";
 import { Image as RNImage } from "react-native";
 import { auth, storage } from "../firebase";
+import { getEmulatorHost, USE_EMULATORS } from "../emulators";
 import { getInputImagePath } from "../storagePaths";
 
 export async function uploadInputImage(
@@ -68,13 +69,9 @@ export async function uploadInputImage(
   }
 
   // Use Storage REST API to avoid Blob/ArrayBuffer incompatibilities in React Native runtimes.
-  // If you're running emulators on a physical device, this must be the LAN IP of your PC.
-  const emulatorHost =
-    process.env.EXPO_PUBLIC_EMULATOR_HOST ?? "192.168.1.30";
-  const baseUrl =
-    emulatorHost && emulatorHost.length > 0
-      ? `http://${emulatorHost}:9199`
-      : "https://firebasestorage.googleapis.com";
+  const baseUrl = USE_EMULATORS
+    ? `http://${getEmulatorHost()}:9199`
+    : "https://firebasestorage.googleapis.com";
 
   const url = `${baseUrl}/v0/b/${encodeURIComponent(
     bucket

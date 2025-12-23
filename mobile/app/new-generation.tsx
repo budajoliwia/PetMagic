@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system/legacy";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -13,8 +14,6 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
-  Pressable,
-  ScrollView,
   Text,
   View,
 } from "react-native";
@@ -22,19 +21,20 @@ import { auth, db } from "../src/firebase";
 import { useUserLimit } from "../src/hooks/useUserLimit";
 import { JobDoc, JobType } from "../src/models";
 import { uploadInputImage } from "../src/storage/uploadInputImage";
+import { STYLES_BY_TYPE } from "../src/styles";
+import { useAppTheme } from "../src/theme";
+import { Button } from "../src/ui/Button";
+import { Chip } from "../src/ui/Chip";
+import { Screen } from "../src/ui/Screen";
 
 const TYPE_OPTIONS: { label: string; value: JobType }[] = [
   { label: "Sticker", value: "sticker" },
   { label: "Image", value: "image" },
 ];
 
-const STYLES_BY_TYPE: Record<JobType, string[]> = {
-  sticker: ["Cartoon", "Kawaii", "Line Art", "Vector Art", "Pixel Art"],
-  image: ["Cartoon", "Oil Painting", "Line Art", "Vector Art", "Pixel Art"],
-};
-
 export default function NewGenerationScreen() {
   const router = useRouter();
+  const { colors } = useAppTheme();
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [jobType, setJobType] = useState<JobType>("sticker");
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
@@ -194,26 +194,13 @@ export default function NewGenerationScreen() {
   };
 
   return (
-    <ScrollView
-      contentContainerStyle={{
-        flexGrow: 1,
-        padding: 24,
-        gap: 24,
-        backgroundColor: "#020617",
-      }}
-    >
-      <View>
-        <Text
-          style={{
-            fontSize: 24,
-            fontWeight: "bold",
-            color: "white",
-          }}
-        >
+    <Screen contentContainerStyle={{ gap: 18 }}>
+      <View style={{ gap: 6 }}>
+        <Text style={{ fontSize: 24, fontWeight: "800", color: colors.text }}>
           Nowa generacja
         </Text>
-        <Text style={{ color: "#9ca3af", marginTop: 4 }}>
-          Wybierz zdjęcie swojego pupila, rodzaj grafiki i styl.
+        <Text style={{ color: colors.muted, marginTop: 2, fontSize: 14 }}>
+          Wybierz zdjęcie, rodzaj grafiki i styl.
         </Text>
       </View>
 
@@ -221,38 +208,23 @@ export default function NewGenerationScreen() {
       <View style={{ gap: 12 }}>
         <Text
           style={{
-            fontSize: 18,
-            fontWeight: "600",
-            color: "white",
+            fontSize: 13,
+            fontWeight: "700",
+            color: colors.muted,
           }}
         >
-          0. Rodzaj
+          Rodzaj
         </Text>
-        <View style={{ flexDirection: "row", gap: 8 }}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {TYPE_OPTIONS.map((opt) => {
             const isActive = jobType === opt.value;
             return (
-              <Pressable
+              <Chip
                 key={opt.value}
+                label={opt.label}
+                selected={isActive}
                 onPress={() => setJobType(opt.value)}
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  borderRadius: 999,
-                  borderWidth: 1,
-                  borderColor: isActive ? "#22c55e" : "#374151",
-                  backgroundColor: isActive ? "#064e3b" : "#020617",
-                }}
-              >
-                <Text
-                  style={{
-                    color: isActive ? "#bbf7d0" : "#e5e7eb",
-                    fontSize: 14,
-                  }}
-                >
-                  {opt.label}
-                </Text>
-              </Pressable>
+              />
             );
           })}
         </View>
@@ -262,50 +234,44 @@ export default function NewGenerationScreen() {
       <View style={{ gap: 12 }}>
         <Text
           style={{
-            fontSize: 18,
-            fontWeight: "600",
-            color: "white",
+            fontSize: 13,
+            fontWeight: "700",
+            color: colors.muted,
           }}
         >
-          1. Zdjęcie
+          Zdjęcie
         </Text>
-        <View style={{ flexDirection: "row", gap: 12 }}>
-          <Pressable
-            onPress={takePhoto}
-            style={{
-              flex: 1,
-              padding: 12,
-              backgroundColor: "#0f172a",
-              borderRadius: 12,
-              alignItems: "center",
-              borderWidth: 1,
-              borderColor: "#1f2937",
-            }}
-          >
-            <Text style={{ color: "#e5e7eb" }}>Zrób zdjęcie</Text>
-          </Pressable>
-          <Pressable
-            onPress={pickFromGallery}
-            style={{
-              flex: 1,
-              padding: 12,
-              backgroundColor: "#0f172a",
-              borderRadius: 12,
-              alignItems: "center",
-              borderWidth: 1,
-              borderColor: "#1f2937",
-            }}
-          >
-            <Text style={{ color: "#e5e7eb" }}>Wybierz z galerii</Text>
-          </Pressable>
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <View style={{ flex: 1 }}>
+            <Button
+              title="Zrób zdjęcie"
+              variant="secondary"
+              size="md"
+              onPress={takePhoto}
+              left={
+                <Ionicons name="camera-outline" size={18} color={colors.text} />
+              }
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button
+              title="Z galerii"
+              variant="secondary"
+              size="md"
+              onPress={pickFromGallery}
+              left={
+                <Ionicons name="images-outline" size={18} color={colors.text} />
+              }
+            />
+          </View>
         </View>
         <View
           style={{
             height: 180,
             borderRadius: 16,
-            backgroundColor: "#0f172a",
+            backgroundColor: colors.card,
             borderWidth: 1,
-            borderColor: "#1f2937",
+            borderColor: colors.border,
             alignItems: "center",
             justifyContent: "center",
             overflow: "hidden",
@@ -318,9 +284,7 @@ export default function NewGenerationScreen() {
               contentFit="cover"
             />
           ) : (
-            <Text style={{ color: "#6b7280" }}>
-              Podgląd zdjęcia (placeholder)
-            </Text>
+            <Text style={{ color: colors.subtle }}>Podgląd zdjęcia</Text>
           )}
         </View>
       </View>
@@ -329,12 +293,12 @@ export default function NewGenerationScreen() {
       <View style={{ gap: 12 }}>
         <Text
           style={{
-            fontSize: 18,
-            fontWeight: "600",
-            color: "white",
+            fontSize: 13,
+            fontWeight: "700",
+            color: colors.muted,
           }}
         >
-          2. Styl
+          Styl
         </Text>
         <View
           style={{
@@ -346,76 +310,47 @@ export default function NewGenerationScreen() {
           {availableStyles.map((style) => {
             const isActive = selectedStyle === style;
             return (
-              <Pressable
+              <Chip
                 key={style}
+                label={style}
+                selected={isActive}
                 onPress={() => setSelectedStyle(style)}
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  borderRadius: 999,
-                  borderWidth: 1,
-                  borderColor: isActive ? "#22c55e" : "#374151",
-                  backgroundColor: isActive ? "#064e3b" : "#020617",
-                }}
-              >
-                <Text
-                  style={{
-                    color: isActive ? "#bbf7d0" : "#e5e7eb",
-                    fontSize: 14,
-                  }}
-                >
-                  {style}
-                </Text>
-              </Pressable>
+              />
             );
           })}
         </View>
       </View>
 
       {/* Podsumowanie + Generuj */}
-      <View style={{ marginTop: "auto", gap: 12 }}>
+      <View style={{ marginTop: 8, gap: 10 }}>
         {!isLoadingLimit && dailyLimit > 0 && (
-          <Text style={{ color: isLimitReached ? "#fca5a5" : "#9ca3af" }}>
+          <Text style={{ color: isLimitReached ? colors.danger : colors.subtle }}>
             Limit dzienny: {usedToday} / {dailyLimit}
           </Text>
         )}
-        <Text style={{ color: "#9ca3af" }}>
+        <Text style={{ color: colors.subtle }}>
           Wybrany styl: {selectedStyle ?? "brak (wybierz powyżej)"}
         </Text>
-        <Pressable
+        <Button
           onPress={handleGenerate}
-          style={{
-            paddingVertical: 16,
-            borderRadius: 999,
-            backgroundColor: "#22c55e",
-            alignItems: "center",
-            opacity: isSubmitting || (!isLoadingLimit && isLimitReached) ? 0.7 : 1,
-            flexDirection: "row",
-            justifyContent: "center",
-            gap: 10,
-          }}
           disabled={isSubmitting || (!isLoadingLimit && isLimitReached)}
-        >
-          {isSubmitting && (
-            <ActivityIndicator size="small" color="#022c22" />
-          )}
-          <Text
-            style={{
-              color: "#022c22",
-              fontWeight: "700",
-              fontSize: 16,
-            }}
-          >
-            {isSubmitting
+          title={
+            isSubmitting
               ? "Generuję..."
               : !isLoadingLimit && isLimitReached
               ? "Limit osiągnięty"
-              : "Generuj"}
-          </Text>
-        </Pressable>
-       
+              : "Generuj"
+          }
+          left={
+            isSubmitting ? (
+              <ActivityIndicator size="small" color={colors.onPrimary} />
+            ) : (
+              <Ionicons name="sparkles-outline" size={18} color={colors.onPrimary} />
+            )
+          }
+        />
       </View>
-    </ScrollView>
+    </Screen>
   );
 }
 

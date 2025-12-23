@@ -12,7 +12,6 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
-  ScrollView,
   Text,
   View,
 } from "react-native";
@@ -20,6 +19,11 @@ import { auth, db } from "../src/firebase";
 import { useStorageDownloadUrl } from "../src/hooks/useStorageDownloadUrl";
 import { useUserLimit } from "../src/hooks/useUserLimit";
 import { GenerationDoc } from "../src/models";
+import { STYLES_BY_TYPE } from "../src/styles";
+import { useAppTheme } from "../src/theme";
+import { Button } from "../src/ui/Button";
+import { Chip } from "../src/ui/Chip";
+import { Screen } from "../src/ui/Screen";
 
 type HistoryItem = {
   id: string;
@@ -28,6 +32,7 @@ type HistoryItem = {
 
 function GenerationThumbnail({ outputImagePath }: { outputImagePath?: string }) {
   const { url, isLoading, error } = useStorageDownloadUrl(outputImagePath);
+  const { colors } = useAppTheme();
 
   if (url) {
     return (
@@ -42,9 +47,9 @@ function GenerationThumbnail({ outputImagePath }: { outputImagePath?: string }) 
   return (
     <View style={{ alignItems: "center", justifyContent: "center", gap: 6 }}>
       {isLoading ? (
-        <ActivityIndicator size="small" color="#22c55e" />
+        <ActivityIndicator size="small" color={colors.primary} />
       ) : (
-        <Text style={{ color: "#6b7280", fontSize: 12 }}>
+        <Text style={{ color: colors.subtle, fontSize: 12 }}>
           {error ? "Błąd podglądu" : "Brak podglądu"}
         </Text>
       )}
@@ -54,12 +59,13 @@ function GenerationThumbnail({ outputImagePath }: { outputImagePath?: string }) 
 
 export default function HistoryScreen() {
   const router = useRouter();
+  const { colors } = useAppTheme();
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeFilter, setActiveFilter] = useState<
-    "Wszystkie" | "Ulubione" | "Sticker" | "Cartoon"
-  >("Wszystkie");
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<"sticker" | "image" | null>(null);
+  const [styleFilter, setStyleFilter] = useState<string | null>(null);
   const currentUserId = auth.currentUser?.uid ?? null;
   const { dailyLimit, usedToday, isLoading: isLoadingLimit } =
     useUserLimit(currentUserId);
@@ -76,7 +82,7 @@ export default function HistoryScreen() {
       where("userId", "==", currentUser.uid),
       orderBy("createdAt", "desc"),
     ];
-    if (activeFilter === "Ulubione") {
+    if (favoritesOnly) {
       constraints.splice(1, 0, where("isFavorite", "==", true));
     }
 
@@ -102,7 +108,16 @@ export default function HistoryScreen() {
     return () => {
       unsubscribe();
     };
-  }, [router, activeFilter]);
+  }, [router, favoritesOnly]);
+
+  const availableStyleFilters = STYLES_BY_TYPE.sticker;
+
+  const filteredItems = items.filter(({ data }) => {
+    if (typeFilter && data.type && data.type !== typeFilter) return false;
+    if (typeFilter && !data.type) return false;
+    if (styleFilter && data.style !== styleFilter) return false;
+    return true;
+  });
 
   const renderEmptyState = () => {
     if (isLoading) {
@@ -114,8 +129,8 @@ export default function HistoryScreen() {
             gap: 12,
           }}
         >
-          <ActivityIndicator size="large" color="#22c55e" />
-          <Text style={{ color: "#9ca3af", fontSize: 14 }}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={{ color: colors.muted, fontSize: 14 }}>
             Ładowanie historii generacji...
           </Text>
         </View>
@@ -129,12 +144,14 @@ export default function HistoryScreen() {
             marginTop: 32,
             padding: 16,
             borderRadius: 12,
-            backgroundColor: "#0f172a",
+            backgroundColor: colors.card,
+            borderWidth: 1,
+            borderColor: colors.border,
             alignItems: "center",
             gap: 8,
           }}
         >
-          <Text style={{ color: "#fecaca", fontSize: 14 }}>{error}</Text>
+          <Text style={{ color: colors.danger, fontSize: 14 }}>{error}</Text>
         </View>
       );
     }
@@ -145,34 +162,22 @@ export default function HistoryScreen() {
           marginTop: 32,
           padding: 16,
           borderRadius: 12,
-          backgroundColor: "#0f172a",
+          backgroundColor: colors.card,
+          borderWidth: 1,
+          borderColor: colors.border,
           alignItems: "center",
           gap: 8,
         }}
       >
-        <Text style={{ color: "#e5e7eb", fontSize: 14 }}>
+        <Text style={{ color: colors.text, fontSize: 14 }}>
           Nie masz jeszcze żadnych generacji.
         </Text>
-        <Pressable
-          onPress={() => router.push("/new-generation")}
-          style={{
-            marginTop: 4,
-            paddingHorizontal: 16,
-            paddingVertical: 10,
-            borderRadius: 999,
-            backgroundColor: "#22c55e",
-          }}
-        >
-          <Text
-            style={{
-              color: "#022c22",
-              fontWeight: "600",
-              fontSize: 14,
-            }}
-          >
-            Stwórz pierwszą grafikę
-          </Text>
-        </Pressable>
+        <View style={{ width: "100%" }}>
+          <Button
+            title="Stwórz pierwszą grafikę"
+            onPress={() => router.push("/new-generation")}
+          />
+        </View>
       </View>
     );
   };
@@ -190,25 +195,19 @@ export default function HistoryScreen() {
   };
 
   return (
-    <ScrollView
-      contentContainerStyle={{
-        flexGrow: 1,
-        padding: 16,
-        backgroundColor: "#020617",
-      }}
-    >
-      <View style={{ gap: 16 }}>
+    <Screen padding={16} contentContainerStyle={{ gap: 14 }}>
+      <View style={{ gap: 14 }}>
         <View>
           <Text
             style={{
-              color: "white",
+              color: colors.text,
               fontSize: 24,
-              fontWeight: "700",
+              fontWeight: "800",
             }}
           >
             Twoje generacje
           </Text>
-          <Text style={{ color: "#9ca3af", marginTop: 4, fontSize: 14 }}>
+          <Text style={{ color: colors.muted, marginTop: 4, fontSize: 14 }}>
             Przeglądaj historię wygenerowanych grafik.
           </Text>
         </View>
@@ -218,12 +217,12 @@ export default function HistoryScreen() {
           style={{
             padding: 12,
             borderRadius: 12,
-            backgroundColor: "#0f172a",
+            backgroundColor: colors.card,
             borderWidth: 1,
-            borderColor: "#1f2937",
+            borderColor: colors.border,
           }}
         >
-          <Text style={{ color: "#e5e7eb", fontSize: 13, fontWeight: "600" }}>
+          <Text style={{ color: colors.text, fontSize: 13, fontWeight: "700" }}>
             {isLoadingLimit
               ? "Ładowanie limitu..."
               : `Użyto: ${usedToday} / ${dailyLimitLabel} dzisiaj`}
@@ -231,39 +230,86 @@ export default function HistoryScreen() {
         </View>
 
         {/* Filtry (UI-only) */}
-        <View
-          style={{
-            flexDirection: "row",
-            flexWrap: "wrap",
-            gap: 8,
-            marginTop: 4,
-          }}
-        >
-          {["Wszystkie", "Ulubione", "Sticker", "Cartoon"].map((label) => (
-            <Pressable
-              key={label}
-              onPress={() => setActiveFilter(label as any)}
-              style={{
-                paddingHorizontal: 10,
-                paddingVertical: 6,
-                borderRadius: 999,
-                borderWidth: 1,
-                borderColor: "#1f2937",
-                backgroundColor:
-                  label === activeFilter ? "#0f172a" : "transparent",
-              }}
-            >
-              <Text style={{ color: "#e5e7eb", fontSize: 12 }}>{label}</Text>
-            </Pressable>
-          ))}
+        <View style={{ gap: 8, marginTop: 4 }}>
+          {/* Row 1: scope */}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            <Chip
+              label="Wszystkie"
+              selected={!favoritesOnly}
+              onPress={() => setFavoritesOnly(false)}
+            />
+            <Chip
+              label="Ulubione"
+              selected={favoritesOnly}
+              onPress={() => setFavoritesOnly(true)}
+            />
+          </View>
+
+          {/* Row 2: type */}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            <Chip
+              label="Sticker"
+              selected={typeFilter === "sticker"}
+              onPress={() =>
+                setTypeFilter((prev) => (prev === "sticker" ? null : "sticker"))
+              }
+            />
+            <Chip
+              label="Image"
+              selected={typeFilter === "image"}
+              onPress={() =>
+                setTypeFilter((prev) => (prev === "image" ? null : "image"))
+              }
+            />
+          </View>
+
+          {/* Row 3: style (optional, compact) */}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            {availableStyleFilters.map((s) => (
+              <Chip
+                key={s}
+                label={s}
+                selected={styleFilter === s}
+                onPress={() => setStyleFilter((prev) => (prev === s ? null : s))}
+              />
+            ))}
+          </View>
         </View>
 
         {/* Grid miniaturek */}
         {items.length === 0 ? (
           renderEmptyState()
+        ) : filteredItems.length === 0 ? (
+          <View
+            style={{
+              marginTop: 24,
+              padding: 16,
+              borderRadius: 12,
+              backgroundColor: colors.card,
+              borderWidth: 1,
+              borderColor: colors.border,
+              gap: 10,
+            }}
+          >
+            <Text style={{ color: colors.text, fontSize: 14, fontWeight: "700" }}>
+              Brak wyników dla wybranych filtrów
+            </Text>
+            <Text style={{ color: colors.muted, fontSize: 13 }}>
+              Zmień filtry lub wyczyść je, aby zobaczyć więcej generacji.
+            </Text>
+            <Button
+              title="Wyczyść filtry"
+              variant="secondary"
+              onPress={() => {
+                setFavoritesOnly(false);
+                setTypeFilter(null);
+                setStyleFilter(null);
+              }}
+            />
+          </View>
         ) : (
           <FlatList
-            data={items}
+            data={filteredItems}
             numColumns={2}
             keyExtractor={(item) => item.id}
             columnWrapperStyle={{ gap: 12 }}
@@ -281,9 +327,9 @@ export default function HistoryScreen() {
                   flex: 1,
                   aspectRatio: 1,
                   borderRadius: 16,
-                  backgroundColor: "#0f172a",
+                  backgroundColor: colors.card,
                   borderWidth: 1,
-                  borderColor: "#1f2937",
+                  borderColor: colors.border,
                   padding: 10,
                   justifyContent: "space-between",
                 }}
@@ -292,7 +338,7 @@ export default function HistoryScreen() {
                   style={{
                     flex: 1,
                     borderRadius: 12,
-                    backgroundColor: "#111827",
+                    backgroundColor: colors.border,
                     alignItems: "center",
                     justifyContent: "center",
                     overflow: "hidden",
@@ -305,19 +351,20 @@ export default function HistoryScreen() {
                 <View style={{ marginTop: 6 }}>
                   <Text
                     style={{
-                      color: "#e5e7eb",
+                      color: colors.text,
                       fontSize: 12,
-                      fontWeight: "600",
+                      fontWeight: "700",
                     }}
+                    numberOfLines={1}
                   >
                     {item.data.style}
                   </Text>
                   {item.data.type && (
-                    <Text style={{ color: "#a5b4fc", fontSize: 11 }}>
+                    <Text style={{ color: colors.muted, fontSize: 11 }}>
                       {item.data.type === "sticker" ? "Sticker" : "Image"}
                     </Text>
                   )}
-                  <Text style={{ color: "#6b7280", fontSize: 11 }}>
+                  <Text style={{ color: colors.subtle, fontSize: 11 }}>
                     {formatCreatedAt(item.data)}
                   </Text>
                 </View>
@@ -326,7 +373,7 @@ export default function HistoryScreen() {
           />
         )}
       </View>
-    </ScrollView>
+    </Screen>
   );
 }
 

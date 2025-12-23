@@ -3,17 +3,19 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Pressable,
-  ScrollView,
   Text,
   View
 } from "react-native";
 import { db } from "../src/firebase";
 import { JobDoc } from "../src/models";
+import { useAppTheme } from "../src/theme";
+import { Button } from "../src/ui/Button";
+import { Screen } from "../src/ui/Screen";
 
 export default function JobStatusScreen() {
   const router = useRouter();
   const { jobId } = useLocalSearchParams<{ jobId?: string }>();
+  const { colors } = useAppTheme();
 
   const [job, setJob] = useState<JobDoc | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -90,14 +92,10 @@ export default function JobStatusScreen() {
     }
   }, [job?.status]);
 
+  const showDetailsCard = !!error || isLimitReachedError || (!!errorDetails && !isLimitReachedError);
+
   return (
-    <ScrollView
-      contentContainerStyle={{
-        flexGrow: 1,
-        padding: 24,
-        backgroundColor: "#020617",
-      }}
-    >
+    <Screen contentContainerStyle={{ justifyContent: "center" }}>
       <View
         style={{
           flex: 1,
@@ -109,9 +107,9 @@ export default function JobStatusScreen() {
         <View style={{ alignItems: "center", gap: 12 }}>
           <Text
             style={{
-              color: "white",
+              color: colors.text,
               fontSize: 24,
-              fontWeight: "700",
+              fontWeight: "800",
               textAlign: "center",
             }}
           >
@@ -119,7 +117,7 @@ export default function JobStatusScreen() {
           </Text>
           <Text
             style={{
-              color: "#9ca3af",
+              color: colors.muted,
               fontSize: 14,
               textAlign: "center",
             }}
@@ -130,86 +128,56 @@ export default function JobStatusScreen() {
 
         <View style={{ alignItems: "center", gap: 16 }}>
           {isLoading ? (
-            <ActivityIndicator size="large" color="#22c55e" />
+            <ActivityIndicator size="large" color={colors.primary} />
           ) : (
-            <ActivityIndicator size="small" color="#22c55e" />
+            <ActivityIndicator size="small" color={colors.primary} />
           )}
-          <Text style={{ color: "#a5b4fc", fontSize: 14 }}>
+          <Text style={{ color: colors.muted, fontSize: 14 }}>
             {job?.status ? statusLabel : "W kolejce…"}
           </Text>
         </View>
 
-        <View
-          style={{
-            marginTop: 16,
-            padding: 16,
-            borderRadius: 12,
-            backgroundColor: "#0f172a",
-            width: "100%",
-            gap: 8,
-          }}
-        >
-          <Text
+        {showDetailsCard && (
+          <View
             style={{
-              color: "#e5e7eb",
-              fontSize: 14,
-              fontWeight: "600",
+              marginTop: 16,
+              padding: 16,
+              borderRadius: 12,
+              backgroundColor: colors.card,
+              borderWidth: 1,
+              borderColor: colors.border,
+              width: "100%",
+              gap: 8,
             }}
           >
-            Status joba:
-          </Text>
-          {error ? (
-            <Text style={{ color: "#f97373", fontSize: 14 }}>{error}</Text>
-          ) : (
-            <>
-            <Text style={{ color: "#9ca3af", fontSize: 14 }}>
-              status:{" "}
-              <Text style={{ color: "#22c55e" }}>{job?.status}</Text> (
-              {statusLabel})
-            </Text>
-            {isLimitReachedError && (
-              <Text style={{ color: "#f97373", fontSize: 14 }}>
+            {error ? (
+              <Text style={{ color: colors.danger, fontSize: 14 }}>{error}</Text>
+            ) : isLimitReachedError ? (
+              <Text style={{ color: colors.danger, fontSize: 14 }}>
                 Przekroczono dzienny limit generacji. Spróbuj jutro.
               </Text>
-            )}
-            {errorDetails && !isLimitReachedError && (
-              <View style={{ gap: 6 }}>
-                <Text style={{ color: "#f97373", fontSize: 14 }}>
+            ) : errorDetails ? (
+              <>
+                <Text style={{ color: colors.danger, fontSize: 14 }}>
                   {errorDetails.message}
                 </Text>
-                <Text style={{ color: "#94a3b8", fontSize: 12 }}>
+                <Text style={{ color: colors.subtle, fontSize: 12 }}>
                   Kod: {errorDetails.code}
                 </Text>
-              </View>
-            )}
-              <Text style={{ color: "#6b7280", fontSize: 12 }}>
-                Ten ekran nasłuchuje dokumentu{" "}
-                <Text style={{ fontWeight: "600" }}>jobs/{jobId}</Text> i po
-                zakończeniu zadania przechodzi do szczegółów generacji.
-              </Text>
-            </>
-          )}
-        </View>
+              </>
+            ) : null}
+          </View>
+        )}
 
         <View style={{ width: "100%", marginTop: "auto", gap: 12 }}>
-          <Pressable
+          <Button
+            title="Wróć do ekranu głównego"
+            variant="secondary"
             onPress={() => router.replace("/home")}
-            style={{
-              paddingVertical: 14,
-              borderRadius: 999,
-              backgroundColor: "#0f172a",
-              alignItems: "center",
-              borderWidth: 1,
-              borderColor: "#1f2937",
-            }}
-          >
-            <Text style={{ color: "#e5e7eb", fontWeight: "500" }}>
-              Wróć do ekranu głównego
-            </Text>
-          </Pressable>
+          />
         </View>
       </View>
-    </ScrollView>
+    </Screen>
   );
 }
 

@@ -59,10 +59,11 @@ function buildStylePrompt(type: "sticker" | "image", style: string) {
 
   const styleHint = (() => {
     const s = style.toLowerCase();
-    if (s.includes("kawaii")) return "Style: kawaii, cute, soft shapes, pastel colors.";
-    if (s.includes("pixel")) return "Style: pixel art, crisp pixels, limited palette.";
+    if (s.includes("kawaii plush") || s.includes("kawii plush")) {
+      return "Style: kawaii plush, cute pet illustration, plush toy look, soft rounded shapes, pastel colors, big expressive eyes, simple details.";
+    }
+    if (s.includes("kawaii")) return "Style: kawaii, anime style, cute but not too childish, soft shapes, .";
     if (s.includes("line")) return "Style: minimal line art, clean contours, monochrome lines.";
-    if (s.includes("vector")) return "Style: vector art, clean shapes, flat colors.";
     if (s.includes("cartoon")) return "Style: cartoon, bold outlines, saturated colors.";
     return `Style: ${style}.`;
   })();

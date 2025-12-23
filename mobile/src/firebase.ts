@@ -1,10 +1,13 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { initializeApp } from "firebase/app";
-import { connectAuthEmulator, getAuth } from "firebase/auth";
+import * as FirebaseAuth from "firebase/auth";
 import {
   connectFirestoreEmulator,
   getFirestore,
 } from "firebase/firestore";
 import { connectStorageEmulator, getStorage } from "firebase/storage";
+import { Platform } from "react-native";
+import { getEmulatorHost, USE_EMULATORS } from "./emulators";
 
 
 
@@ -23,32 +26,52 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // SDK
-export const auth = getAuth(app);
+export const auth = (() => {
+  const { getAuth, initializeAuth } = FirebaseAuth;
+
+  if (Platform.OS === "web") return getAuth(app);
+
+  // In dev, Fast Refresh can re-evaluate modules: calling initializeAuth twice throws.
+  // If already initialized, fall back to getAuth(app).
+  try {
+    return initializeAuth(app, {
+      // Firebase's RN persistence helper exists at runtime, but its TS types are not always
+      // available depending on the firebase build resolution. Use a safe `any` bridge.
+      persistence: (FirebaseAuth as any).getReactNativePersistence?.(AsyncStorage),
+    });
+  } catch {
+    return getAuth(app);
+  }
+})();
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
 
-// EMULATORY – tylko Auth + Firestore
-
-
-const USE_EMULATORS = true;
-
+// EMULATORY
 if (USE_EMULATORS) {
-  // For physical devices, "localhost" points to the phone itself.
-  // Use LAN IP of the machine running Firebase emulators.
-  const EMULATOR_HOST =
-    process.env.EXPO_PUBLIC_EMULATOR_HOST ?? "192.168.1.30";
-
-  console.log("Connecting to Firebase Emulators...");
+  const host = getEmulatorHost();
+  console.log(`Connecting to Firebase Emulators... host=${host}`);
 
   // Auth Emulator (9099)
-  connectAuthEmulator(auth, `http://${EMULATOR_HOST}:9099`, {
-    disableWarnings: true,
-  });
+  try {
+    FirebaseAuth.connectAuthEmulator(auth, `http://${host}:9099`, {
+      disableWarnings: true,
+    });
+  } catch {
+    // Fast refresh / double init: ignore if already connected.
+  }
 
   // Firestore Emulator (8080)
-  connectFirestoreEmulator(db, EMULATOR_HOST, 8080);
+  try {
+    connectFirestoreEmulator(db, host, 8080);
+  } catch {
+    // ignore if already connected
+  }
 
   // Storage Emulator (9199)
-  connectStorageEmulator(storage, EMULATOR_HOST, 9199);
+  try {
+    connectStorageEmulator(storage, host, 9199);
+  } catch {
+    // ignore if already connected
+  }
 }
