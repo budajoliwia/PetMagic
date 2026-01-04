@@ -11,10 +11,11 @@ export interface UserDoc {
 }
 
 export type JobStatus = "queued" | "processing" | "done" | "error";
+export type JobType = "sticker" | "image";
 
 export interface JobDoc {
   userId: string;
-  type: "GENERATE_STICKER";
+  type: JobType;
 
   inputImagePath: string;
   style: string;

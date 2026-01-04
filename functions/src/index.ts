@@ -4,4 +4,6 @@
  */
 
 import "./core/firebase"; // Ensure initialization runs
+export { onUserCreated } from "./triggers/onUserCreated";
 export { processJob } from "./triggers/processJob";
+

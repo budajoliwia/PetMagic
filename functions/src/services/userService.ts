@@ -1,3 +1,4 @@
+import { FieldValue } from "firebase-admin/firestore";
 import { db } from "../core/firebase";
 import { UserDoc } from "../types";
 
@@ -19,13 +20,20 @@ export async function consumeUserLimit(userId: string): Promise<void> {
   await db.runTransaction(async (tx) => {
     const userSnapshot = await tx.get(userRef);
     if (!userSnapshot.exists) {
-      throw new Error("Missing user document");
+      tx.set(userRef, {
+        email: "",
+        createdAt: FieldValue.serverTimestamp(),
+        role: "user",
+        dailyLimit: 5,
+        usedToday: 0,
+        lastUsageDate: null,
+      });
     }
 
-    const user = userSnapshot.data() as UserDoc;
-    const dailyLimit = user.dailyLimit ?? 0;
-    let usedToday = user.usedToday ?? 0;
-    const lastUsageDate = user.lastUsageDate ?? null;
+    const user = (userSnapshot.exists ? userSnapshot.data() : null) as UserDoc | null;
+    const dailyLimit = user?.dailyLimit ?? 5;
+    let usedToday = user?.usedToday ?? 0;
+    const lastUsageDate = user?.lastUsageDate ?? null;
 
     // Reset counter if it's a new day
     if (lastUsageDate !== today) {

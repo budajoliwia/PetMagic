@@ -41,7 +41,6 @@ export default function HomeScreen() {
       router.replace("/");
     } catch (error) {
       // Prosty komunikat błędu – w przyszłości można to rozbudować
-      // eslint-disable-next-line no-console
       console.error("Logout error", error);
       Alert.alert("Błąd", "Nie udało się wylogować. Spróbuj ponownie.");
     }

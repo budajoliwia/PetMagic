@@ -14,7 +14,7 @@ import { JobDoc } from "../types";
 import {
   mapProcessingErrorCode,
   markJobError,
-  normalizeErrorMessage
+  normalizeErrorMessage,
 } from "../utils/errorUtils";
 import { getOutputImagePath } from "../utils/paths";
 
@@ -66,9 +66,7 @@ export const processJob = onDocumentCreated(
       // Download Input
       const inputBuffer = await downloadBuffer(jobData.inputImagePath);
 
-      const rawType = (jobData as any).type;
-      const jobType: "sticker" | "image" =
-        rawType === "image" ? "image" : "sticker";
+      const jobType = jobData.type === "image" ? "image" : "sticker";
 
       const outputBuffer = await generateImageFromInput({
         inputImage: inputBuffer,
@@ -104,7 +102,6 @@ export const processJob = onDocumentCreated(
         resultGenerationId: generationId,
         updatedAt: FieldValue.serverTimestamp(),
       });
-
     } catch (error) {
       // Best-effort refund: failed generations should not consume daily usage.
       try {

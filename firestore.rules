@@ -4,10 +4,17 @@ service cloud.firestore {
 
     function signedIn() { return request.auth != null; }
     function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+    function isNonEmptyString(v) { return v is string && v.size() > 0; }
+    function isSafeStyle(v) {
+      // Keep this permissive, but prevent abuse (very long / empty strings).
+      return isNonEmptyString(v) && v.size() <= 60;
+    }
 
     match /users/{uid} {
       allow read: if isOwner(uid);
-      allow create: if isOwner(uid);
+      // User profile documents are created/managed by backend (Admin SDK bypasses rules).
+      // This prevents clients from setting an arbitrary dailyLimit and burning API costs.
+      allow create: if false;
       allow update, delete: if false; // userDoc zmienia backend (limit)
     }
 
@@ -19,8 +26,19 @@ service cloud.firestore {
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == "queued"
         && request.resource.data.type in ["sticker", "image"]
-        && request.resource.data.inputImagePath is string
-        && request.resource.data.style is string
+        && request.resource.data.keys().hasOnly([
+          "userId",
+          "status",
+          "type",
+          "inputImagePath",
+          "style",
+          "createdAt",
+          "updatedAt"
+        ])
+        // Prevent pointing the backend at a different user's input image.
+        && request.resource.data.inputImagePath ==
+          ("input/" + request.auth.uid + "/" + jobId + ".jpg")
+        && isSafeStyle(request.resource.data.style)
         && !( "errorCode" in request.resource.data )
         && !( "errorMessage" in request.resource.data )
         && !( "resultGenerationId" in request.resource.data );

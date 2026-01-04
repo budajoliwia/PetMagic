@@ -1,120 +1,85 @@
-# 🐾 PetMagicAI
+# PetMagicAI
 
-To jest monorepo (jeden projekt), który zawiera zarówno **Aplikację Mobilną** (React Native/Expo), jak i **Backend** (Firebase Cloud Functions).
+Monorepo z aplikacją mobilną (Expo/React Native) oraz backendem (Firebase Cloud Functions + Firestore/Storage). Użytkownik wrzuca zdjęcie pupila i generuje z niego grafikę w stylu **sticker** albo **image**.
 
-## 📂 Struktura Projektu
+## Funkcje
+- **Generowanie obrazów** na podstawie zdjęcia (OpenAI).
+- **Kolejka jobów** w Firestore (`jobs/{jobId}`) + backendowy worker (`processJob`).
+- **Historia generacji** (`generations/{id}`), zapisywanie/udostępnianie.
+- **Limity dzienne** per użytkownik.
 
-Projekt jest podzielony na dwie główne części:
+## Stack
+- **Mobile**: Expo (React Native), Expo Router, Firebase Web SDK
+- **Backend**: Firebase Cloud Functions (Gen2 dla `processJob`), Firestore, Storage
+- **AI**: OpenAI (`gpt-image-1`)
 
-### 📱 `mobile/` (Frontend)
-- Tu siedzi cała aplikacja mobilna (React Native + Expo).
-- Ekrany, style, logika po stronie telefonu.
-- **Główny plik:** `mobile/app/index.tsx`.
+## Struktura repo
+- **`mobile/`**: aplikacja mobilna (wejście: `mobile/app/index.tsx`)
+- **`functions/`**: Cloud Functions (wejście: `functions/src/index.ts`)
 
-### ☁️ `functions/` (Backend)
-- Tu siedzi "mózg" aplikacji w chmurze (Node.js + Firebase Functions V2).
-- Odpowiada za generowanie AI, przetwarzanie obrazków i pilnowanie limitów użytkowników.
-- **Główny plik:** `functions/src/index.ts`.
+## Konfiguracja (env)
+### Mobile (`mobile/.env`)
+Skopiuj `mobile/env.example` → `mobile/.env` i uzupełnij:
+- `EXPO_PUBLIC_FIREBASE_*` (z Firebase Console → Project settings → Web app)
+- `EXPO_PUBLIC_USE_EMULATORS` i opcjonalnie `EXPO_PUBLIC_EMULATOR_HOST` (tylko do pracy na emulatorach)
 
----
+### Functions (`functions/.env.local`)
+Skopiuj `functions/env.local.template` → `functions/.env.local` i ustaw:
+- `OPENAI_API_KEY=...`
 
-## 🛠 Instalacja (Na Start)
-
-Zanim zaczniesz, musisz mieć zainstalowane:
-1.  **Node.js** (wersja 18 lub 20).
-2.  **Firebase CLI**: Zainstaluj komendą: `npm install -g firebase-tools`.
-
-### Krok 1: Pobierz biblioteki
-Uruchom to raz w głównym katalogu projektu:
+## Uruchomienie lokalne (Firebase emulators)
+1. Instalacja zależności (z roota):
 
 ```bash
 npm run setup
 ```
-*(To automatycznie wejdzie do folderów `mobile` i `functions` i zainstaluje tam wszystko, co potrzebne).*
 
----
-
-## 💻 Jak pracować lokalnie (Emulator)
-
-Najlepszy sposób na testowanie zmian bez psucia produkcji.
-
-### 1. Ustaw klucze (Tylko raz)
-Backend potrzebuje klucza do OpenAI. Lokalnie trzymamy go w pliku.
-1. Wejdź do folderu `functions/`.
-2. Skopiuj plik `env.local.template` i zmień mu nazwę na `.env.local`.
-3. Wpisz tam swój klucz: `OPENAI_API_KEY=sk-...`.
-
-### 2. Uruchom Backend (Emulator)
-Otwórz terminal w głównym katalogu i wpisz:
+2. Start emulatorów (z roota):
 
 ```bash
 npm run dev:emulator
 ```
-*(To odpali lokalną bazę danych i funkcje na twoim komputerze).*
 
-### 3. Uruchom Aplikację (Mobile)
-Otwórz **nowy** terminal (ten od emulatora zostaw włączony) i wpisz:
+3. Start aplikacji (z roota, w drugim terminalu):
 
 ```bash
 npm run mobile
 ```
-*(To odpali Expo. Zeskanuj kod QR telefonem lub naciśnij 'a' żeby odpalić na Android Emulatorze).*
 
-### 3a. Ważne: host emulatorów na fizycznym telefonie (Expo Go)
-Jeśli odpalasz na **fizycznym urządzeniu** (np. iPhone), musisz wskazać IP komputera w sieci Wi‑Fi.
+Jeśli uruchamiasz na **fizycznym urządzeniu** i używasz emulatorów, ustaw `EXPO_PUBLIC_EMULATOR_HOST` na IP komputera w LAN (pokazywane przez Expo jako `exp://<IP>:8081`).
 
-- Expo w terminalu pokazuje coś typu: `Metro waiting on exp://192.168.X.Y:8081` → to jest IP, którego użyj.
-- Ustaw zmienne środowiskowe i zrestartuj Expo:
+## Deploy (Firebase)
+1. Ustaw sekret OpenAI (pierwszy raz):
 
 ```bash
-# PowerShell
-$env:EXPO_PUBLIC_EMULATOR_HOST="192.168.X.Y"
-$env:EXPO_PUBLIC_USE_EMULATORS="1"
-
-npm run mobile
+npm run secrets:set
 ```
 
-Dla wygody masz template w `mobile/env.example`. Skopiuj go do `mobile/.env` i wpisz swoje IP (plik `.env` jest ignorowany w repo), albo ustaw te zmienne w shellu jak wyżej.
+2. Deploy Functions + Firestore rules + Storage rules:
 
----
+```bash
+npm run deploy:all
+```
 
-## 🚀 Jak wrzucić na Produkcję (Deploy)
+## Build APK (EAS Build)
+W `mobile/eas.json` są gotowe profile:
+- `preview`: APK (internal distribution)
+- `production`: AAB
 
-Gdy wszystko działa i chcesz pokazać światu.
+Minimalnie:
+1. `npm i -g eas-cli`
+2. `cd mobile && eas init`
+3. Dodaj wartości `EXPO_PUBLIC_FIREBASE_*` jako EAS secrets
+4. Build:
 
-### Metoda A: Szybka (z roota)
-W głównym katalogu wpisz:
+```bash
+eas build --platform android --profile preview
+```
 
-1. **Ustaw sekret (tylko za pierwszym razem):**
-   ```bash
-   npm run secrets:set
-   ```
-   *(Zapyta o klucz OpenAI - wklej go).*
+## Bezpieczeństwo i anti‑abuse (publiczne demo)
+- **Firestore**: klient nie może tworzyć `users/{uid}` (profil tworzy backend), a `jobs/{jobId}` wymusza ścieżkę `input/{uid}/{jobId}.jpg`.
+- **Storage**: upload `input/` tylko właściciel + limit rozmiaru + `image/jpeg`.
+- **Limits**: backend egzekwuje dzienne limity (i refunduje limit, gdy job się wywali).
 
-2. **Wyślij wszystko (Funkcje + Baza + Storage):**
-   ```bash
-   npm run deploy:all
-   ```
-
-### Metoda B: Ręczna (z folderów)
-Jeśli wolisz robić to "po staremu":
-
-1. Wejdź do backendu: `cd functions`
-2. Wyślij funkcje: `firebase deploy --only functions`
-3. Wróć do roota: `cd ..`
-4. Wyślij reguły bazy: `firebase deploy --only firestore:rules`
-
----
-
-## 🔍 Jak to działa pod maską?
-
-**Przepływ zadania (Job Flow):**
-1.  **Aplikacja (Mobile)** tworzy dokument w bazie `jobs/{jobId}` i wrzuca zdjęcie psa.
-2.  **Backend (Functions)** widzi nowy dokument i uruchamia funkcję `processJob`.
-3.  Funkcja sprawdza, czy user nie przekroczył limitu (`userService.ts`).
-4.  Funkcja pyta OpenAI o opis (`aiService.ts`).
-5.  Funkcja przerabia zdjęcie (`imageService.ts`).
-6.  Gotowe! Wynik ląduje w bazie, a aplikacja go wyświetla.
-
----
-*PetMagicAI Team*
+## Koszty (rekomendacja)
+Jeśli robisz publiczne demo: ustaw budżet i alerty w Google Cloud Billing oraz monitoruj logi Functions.

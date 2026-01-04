@@ -11,15 +11,32 @@ import { getEmulatorHost, USE_EMULATORS } from "./emulators";
 
 
 
-// Konfiguracja Firebase (z Firebase Console)
-const firebaseConfig = {
-  apiKey: "TWÓJ_API_KEY",
-  authDomain: "petmagicai.firebaseapp.com",
-  projectId: "petmagicai",
-  storageBucket: "petmagicai.firebasestorage.app",
-  messagingSenderId: "955543695700",
-  appId: "1:955543695700:web:74142be663d22a7cc0d8c1",
-  measurementId: "G-4X4NBN89TH",
+type FirebaseWebConfig = {
+  apiKey: string;
+  authDomain: string;
+  projectId: string;
+  storageBucket: string;
+  messagingSenderId: string;
+  appId: string;
+  measurementId?: string;
+};
+
+function requireNonEmpty(value: string | undefined, name: string): string {
+  if (value && value.trim()) return value.trim();
+  throw new Error(`Missing ${name}. Create mobile/.env (see mobile/env.example) and restart Expo.`);
+}
+
+const firebaseConfig: FirebaseWebConfig = {
+  apiKey: requireNonEmpty(process.env.EXPO_PUBLIC_FIREBASE_API_KEY, "EXPO_PUBLIC_FIREBASE_API_KEY"),
+  authDomain: requireNonEmpty(process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN, "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN"),
+  projectId: requireNonEmpty(process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID, "EXPO_PUBLIC_FIREBASE_PROJECT_ID"),
+  storageBucket: requireNonEmpty(process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET, "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET"),
+  messagingSenderId: requireNonEmpty(
+    process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID"
+  ),
+  appId: requireNonEmpty(process.env.EXPO_PUBLIC_FIREBASE_APP_ID, "EXPO_PUBLIC_FIREBASE_APP_ID"),
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID?.trim(),
 };
 
 // Inicjalizacja aplikacji Firebase

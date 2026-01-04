@@ -1,11 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import React, { useState } from "react";
 import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from "react-native";
 import { auth, db } from "../src/firebase";
-import { UserDoc } from "../src/models";
 import { useAppTheme } from "../src/theme";
 import { Button } from "../src/ui/Button";
 import { Screen } from "../src/ui/Screen";
@@ -18,6 +17,18 @@ export default function AuthScreen() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const waitForUserDoc = async (uid: string) => {
+
+    const deadline = Date.now() + 8_000;
+    const userRef = doc(db, "users", uid);
+
+    while (Date.now() < deadline) {
+      const snap = await getDoc(userRef);
+      if (snap.exists()) return;
+      await new Promise((r) => setTimeout(r, 400));
+    }
+  };
 
   const handleSignUp = async () => {
     const trimmedEmail = email.trim();
@@ -35,17 +46,8 @@ export default function AuthScreen() {
     setIsLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
-      
-      // Create user document in Firestore
-      const userDoc: UserDoc = {
-        email: trimmedEmail,
-        createdAt: new Date().toISOString(),
-        role: "user",
-        dailyLimit: 5,
-        usedToday: 0,
-        lastUsageDate: null,
-      };
-      await setDoc(doc(db, "users", userCredential.user.uid), userDoc);
+
+      await waitForUserDoc(userCredential.user.uid);
 
       console.log("Registered & saved:", userCredential.user.email);
       Alert.alert("Success", "Registered successfully!");
@@ -76,20 +78,7 @@ export default function AuthScreen() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, password);
 
-      // Ensure user document exists (older accounts or deleted doc would break backend limit checks)
-      const userRef = doc(db, "users", userCredential.user.uid);
-      const userSnap = await getDoc(userRef);
-      if (!userSnap.exists()) {
-        const userDoc: UserDoc = {
-          email: trimmedEmail,
-          createdAt: new Date().toISOString(),
-          role: "user",
-          dailyLimit: 5,
-          usedToday: 0,
-          lastUsageDate: null,
-        };
-        await setDoc(userRef, userDoc);
-      }
+      await waitForUserDoc(userCredential.user.uid);
 
       console.log("Logged in:", userCredential.user.email);
       Alert.alert("Success", "Logged in successfully!");
