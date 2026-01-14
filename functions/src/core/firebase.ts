@@ -1,9 +1,8 @@
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
-import "../env"; // Load env vars first (for local emulator)
+import "../env";
 
-// Initialize once
 const app = initializeApp();
 
 export const db = getFirestore(app);

@@ -47,7 +47,6 @@ export default function NewGenerationScreen() {
 
   const availableStyles = STYLES_BY_TYPE[jobType];
 
-  // Ensure selected style belongs to current type
   useEffect(() => {
     if (selectedStyle && !availableStyles.includes(selectedStyle)) {
       setSelectedStyle(availableStyles[0] ?? null);
@@ -68,12 +67,18 @@ export default function NewGenerationScreen() {
       mediaTypes: "images",
       allowsEditing: true,
       quality: 0.8,
-      base64: true,
+      base64: Platform.OS !== "web",
     });
 
     if (!result.canceled) {
       const asset = result.assets[0];
-      // On iOS we can get `ph://` URIs; convert to a real file:// by exporting base64.
+
+      if (Platform.OS === "web") {
+        setSelectedImageUri(asset.uri);
+        return;
+      }
+
+      // iOS can return `ph://` URIs; base64 export gives us a real local file URI.
       if (asset.base64) {
         const tempUri = `${FileSystem.cacheDirectory}picked-${Date.now()}.jpg`;
         await FileSystem.writeAsStringAsync(tempUri, asset.base64, {
@@ -204,7 +209,6 @@ export default function NewGenerationScreen() {
         </Text>
       </View>
 
-      {/* Rodzaj grafiki */}
       <View style={{ gap: 12 }}>
         <Text
           style={{
@@ -230,7 +234,6 @@ export default function NewGenerationScreen() {
         </View>
       </View>
 
-      {/* Wybór zdjęcia */}
       <View style={{ gap: 12 }}>
         <Text
           style={{
@@ -289,7 +292,6 @@ export default function NewGenerationScreen() {
         </View>
       </View>
 
-      {/* Wybór stylu */}
       <View style={{ gap: 12 }}>
         <Text
           style={{
@@ -321,7 +323,6 @@ export default function NewGenerationScreen() {
         </View>
       </View>
 
-      {/* Podsumowanie + Generuj */}
       <View style={{ marginTop: 8, gap: 10 }}>
         {!isLoadingLimit && dailyLimit > 0 && (
           <Text style={{ color: isLimitReached ? colors.danger : colors.subtle }}>

@@ -24,7 +24,6 @@ export const processJob = onDocumentCreated(
     region: "europe-central2",
     maxInstances: 10,
     secrets: ["OPENAI_API_KEY"],
-    // Image generation + Storage I/O can exceed the default ~60s in emulators/CF.
     timeoutSeconds: 300,
     memory: "2GiB",
   },
@@ -39,7 +38,6 @@ export const processJob = onDocumentCreated(
 
     const jobRef = db.collection("jobs").doc(jobId);
 
-    // 1. Check Limits
     try {
       await consumeUserLimit(jobData.userId);
     } catch (error) {
@@ -56,14 +54,12 @@ export const processJob = onDocumentCreated(
       return;
     }
 
-    // 2. Process Job
     try {
       await jobRef.update({
         status: "processing",
         updatedAt: FieldValue.serverTimestamp(),
       });
 
-      // Download Input
       const inputBuffer = await downloadBuffer(jobData.inputImagePath);
 
       const jobType = jobData.type === "image" ? "image" : "sticker";
@@ -79,11 +75,9 @@ export const processJob = onDocumentCreated(
       const generationId = generationRef.id;
       const outputPath = getOutputImagePath(jobData.userId, generationId);
 
-      // Stickers: enforce PNG; images can stay PNG for consistency.
       const finalBuffer = await normalizeOutput(outputBuffer, jobType === "sticker");
       await uploadBuffer(outputPath, finalBuffer);
 
-      // Save Generation
       await generationRef.set({
         userId: jobData.userId,
         jobId,
@@ -96,14 +90,12 @@ export const processJob = onDocumentCreated(
         isFavorite: false,
       });
 
-      // Mark Done
       await jobRef.update({
         status: "done",
         resultGenerationId: generationId,
         updatedAt: FieldValue.serverTimestamp(),
       });
     } catch (error) {
-      // Best-effort refund: failed generations should not consume daily usage.
       try {
         await refundUserLimit(jobData.userId);
       } catch (refundError) {

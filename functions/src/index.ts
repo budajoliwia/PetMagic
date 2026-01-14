@@ -1,9 +1,4 @@
-/**
- * Entry point for Cloud Functions.
- * Exports triggers defined in the `triggers` directory.
- */
-
-import "./core/firebase"; // Ensure initialization runs
+import "./core/firebase";
 export { onUserCreated } from "./triggers/onUserCreated";
 export { processJob } from "./triggers/processJob";
 

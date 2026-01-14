@@ -1,8 +1,9 @@
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImageManipulator from "expo-image-manipulator";
-import { Image as RNImage } from "react-native";
-import { auth, storage } from "../firebase";
+import { ref as storageRef, uploadBytes } from "firebase/storage";
+import { Platform, Image as RNImage } from "react-native";
 import { getEmulatorHost, USE_EMULATORS } from "../emulators";
+import { auth, storage } from "../firebase";
 import { getInputImagePath } from "../storagePaths";
 
 export async function uploadInputImage(
@@ -12,6 +13,22 @@ export async function uploadInputImage(
 ): Promise<string> {
   const inputImagePath = getInputImagePath(userId, jobId);
   const scheme = uri.split(":")[0] ?? "unknown";
+
+  if (Platform.OS === "web") {
+    const res = await fetch(uri);
+    if (!res.ok) {
+      throw new Error(
+        `Failed to read selected image on web: HTTP ${res.status}. uriScheme=${scheme}`
+      );
+    }
+    const blob = await res.blob();
+    const contentType = blob.type || "image/jpeg";
+
+    const objRef = storageRef(storage, inputImagePath);
+    await uploadBytes(objRef, blob, { contentType });
+
+    return inputImagePath;
+  }
 
   const fileInfo = await FileSystem.getInfoAsync(uri);
   if (!fileInfo.exists) {
@@ -27,7 +44,6 @@ export async function uploadInputImage(
       );
     });
 
-  // Resize (max long edge 1024px) + compress to JPEG quality 0.7 before upload.
   let uploadUri = uri;
   try {
     const { width, height } = await getImageSizeAsync(uri);
@@ -51,10 +67,8 @@ export async function uploadInputImage(
       }
     );
 
-    // Use the resized/compressed file for upload.
     uploadUri = manipulated.uri;
   } catch {
-    // If we cannot read size / manipulate (rare), fall back to uploading the original.
     uploadUri = uri;
   }
 
@@ -68,7 +82,7 @@ export async function uploadInputImage(
     throw new Error("Missing auth token for Storage upload.");
   }
 
-  // Use Storage REST API to avoid Blob/ArrayBuffer incompatibilities in React Native runtimes.
+  // Use Storage REST API on native to avoid Blob/ArrayBuffer inconsistencies.
   const baseUrl = USE_EMULATORS
     ? `http://${getEmulatorHost()}:9199`
     : "https://firebasestorage.googleapis.com";

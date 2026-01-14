@@ -21,8 +21,29 @@ type FirebaseWebConfig = {
   measurementId?: string;
 };
 
+function normalizeEnv(value: string | undefined): string | undefined {
+  if (value == null) return undefined;
+  let v = value.trim();
+
+  // Common copy/paste mistake: pasting values from a JS object including trailing commas.
+  while (v.endsWith(",")) v = v.slice(0, -1).trim();
+
+  // Also handle nested quotes like: '"petmagicai.firebaseapp.com",'
+  // Strip surrounding quotes repeatedly, and re-trim/remove trailing commas.
+  while (true) {
+    const quotedDouble = v.length >= 2 && v.startsWith('"') && v.endsWith('"');
+    const quotedSingle = v.length >= 2 && v.startsWith("'") && v.endsWith("'");
+    if (!quotedDouble && !quotedSingle) break;
+    v = v.slice(1, -1).trim();
+    while (v.endsWith(",")) v = v.slice(0, -1).trim();
+  }
+
+  return v;
+}
+
 function requireNonEmpty(value: string | undefined, name: string): string {
-  if (value && value.trim()) return value.trim();
+  const v = normalizeEnv(value);
+  if (v && v.trim()) return v;
   throw new Error(`Missing ${name}. Create mobile/.env (see mobile/env.example) and restart Expo.`);
 }
 
@@ -36,7 +57,7 @@ const firebaseConfig: FirebaseWebConfig = {
     "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID"
   ),
   appId: requireNonEmpty(process.env.EXPO_PUBLIC_FIREBASE_APP_ID, "EXPO_PUBLIC_FIREBASE_APP_ID"),
-  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID?.trim(),
+  measurementId: normalizeEnv(process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID),
 };
 
 // Inicjalizacja aplikacji Firebase

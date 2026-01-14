@@ -11,7 +11,7 @@ function resolveBucketName(): string {
       const parsed = JSON.parse(firebaseConfig) as { storageBucket?: string };
       if (parsed.storageBucket) return parsed.storageBucket;
     } catch {
-      // ignore
+      // Ignore invalid FIREBASE_CONFIG JSON
     }
   }
 
@@ -25,7 +25,6 @@ function resolveBucketName(): string {
   );
 }
 
-// Lazy initialization of bucket to ensure env vars are ready
 const getBucket = () => storage.bucket(resolveBucketName());
 
 export async function downloadBuffer(path: string): Promise<Buffer> {

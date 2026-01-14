@@ -1,5 +1,3 @@
-// Shared logic for storage paths
-
 export function getInputImagePath(userId: string, jobId: string): string {
   return `input/${userId}/${jobId}.jpg`;
 }

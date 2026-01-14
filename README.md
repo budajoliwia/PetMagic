@@ -63,6 +63,13 @@ npm run secrets:set
 npm run deploy:all
 ```
 
+### Firestore indexes (ważne dla historii)
+Ekran historii wykonuje zapytanie po `userId` + sortowanie po `createdAt`. Jeśli w konsoli web widzisz błąd `The query requires an index`, zdeployuj indeksy:
+
+```bash
+firebase deploy --only firestore:indexes
+```
+
 ## Build APK (EAS Build)
 W `mobile/eas.json` są gotowe profile:
 - `preview`: APK (internal distribution)
@@ -85,3 +92,7 @@ eas build --platform android --profile preview
 
 ## Koszty (rekomendacja)
 Jeśli robisz publiczne demo: ustaw budżet i alerty w Google Cloud Billing oraz monitoruj logi Functions.
+
+## Web (Expo Web) – uwagi
+- **Udostępnianie**: Web Share API działa zależnie od przeglądarki i zwykle wymaga **HTTPS**.
+- **Pobieranie**: jeśli przeglądarka blokuje pobranie (np. CORS), aplikacja otwiera obraz w nowej karcie — tam możesz go zapisać.

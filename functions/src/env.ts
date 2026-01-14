@@ -9,8 +9,6 @@ function isEmulatorRuntime(): boolean {
   );
 }
 
-// For local development: load functions/.env.local (gitignored) into process.env.
-// In production: rely on Secret Manager injection (secrets: ["OPENAI_API_KEY"]).
 if (isEmulatorRuntime()) {
   const envLocalPath = path.resolve(__dirname, "..", ".env.local");
   if (fs.existsSync(envLocalPath)) {

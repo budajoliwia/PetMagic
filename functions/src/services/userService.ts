@@ -35,7 +35,6 @@ export async function consumeUserLimit(userId: string): Promise<void> {
     let usedToday = user?.usedToday ?? 0;
     const lastUsageDate = user?.lastUsageDate ?? null;
 
-    // Reset counter if it's a new day
     if (lastUsageDate !== today) {
       usedToday = 0;
     }
@@ -51,10 +50,6 @@ export async function consumeUserLimit(userId: string): Promise<void> {
   });
 }
 
-/**
- * Refund a previously consumed daily usage (best-effort).
- * This is used when a generation fails after we already consumed the limit.
- */
 export async function refundUserLimit(userId: string): Promise<void> {
   const userRef = db.collection("users").doc(userId);
   const today = getTodayKey();
@@ -62,7 +57,6 @@ export async function refundUserLimit(userId: string): Promise<void> {
   await db.runTransaction(async (tx) => {
     const userSnapshot = await tx.get(userRef);
     if (!userSnapshot.exists) {
-      // nothing to refund
       return;
     }
 
@@ -70,7 +64,6 @@ export async function refundUserLimit(userId: string): Promise<void> {
     const lastUsageDate = user.lastUsageDate ?? null;
     const usedToday = user.usedToday ?? 0;
 
-    // Only refund for today's counter
     if (lastUsageDate !== today) return;
     if (usedToday <= 0) return;
 

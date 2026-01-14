@@ -212,7 +212,6 @@ export default function HistoryScreen() {
           </Text>
         </View>
 
-        {/* Pasek limitu */}
         <View
           style={{
             padding: 12,
@@ -229,9 +228,7 @@ export default function HistoryScreen() {
           </Text>
         </View>
 
-        {/* Filtry (UI-only) */}
         <View style={{ gap: 8, marginTop: 4 }}>
-          {/* Row 1: scope */}
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             <Chip
               label="Wszystkie"
@@ -245,7 +242,6 @@ export default function HistoryScreen() {
             />
           </View>
 
-          {/* Row 2: type */}
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             <Chip
               label="Sticker"
@@ -263,7 +259,6 @@ export default function HistoryScreen() {
             />
           </View>
 
-          {/* Row 3: style (optional, compact) */}
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {availableStyleFilters.map((s) => (
               <Chip
@@ -276,7 +271,6 @@ export default function HistoryScreen() {
           </View>
         </View>
 
-        {/* Grid miniaturek */}
         {items.length === 0 ? (
           renderEmptyState()
         ) : filteredItems.length === 0 ? (

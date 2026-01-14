@@ -106,7 +106,6 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        {/* Karta dziennego limitu */}
         <View
           style={{
             backgroundColor: colors.card,
@@ -131,7 +130,6 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Główne CTA */}
         <View style={{ gap: 10 }}>
           <Text style={{ color: colors.muted, fontSize: 13, fontWeight: "700" }}>
             Akcje
@@ -149,7 +147,6 @@ export default function HomeScreen() {
           />
         </View>
 
-        {/* Placeholder ostatnich generacji */}
         <View style={{ marginTop: 10, gap: 6 }}>
           <Text style={{ color: colors.muted, fontSize: 13, fontWeight: "700" }}>
             Ostatnie generacje

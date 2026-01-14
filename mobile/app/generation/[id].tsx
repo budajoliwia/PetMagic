@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Text,
   View,
 } from "react-native";
@@ -76,6 +77,11 @@ export default function GenerationDetailScreen() {
     if (!outputUrl) {
       throw new Error("Brak URL do wygenerowanego obrazka.");
     }
+
+    if (Platform.OS === "web") {
+      return outputUrl;
+    }
+
     const fileName = `generation-${typeof id === "string" ? id : "unknown"}.png`;
     const localUri = `${FileSystem.cacheDirectory}${fileName}`;
 
@@ -88,6 +94,41 @@ export default function GenerationDetailScreen() {
 
   const handleSaveToGallery = async () => {
     try {
+      if (Platform.OS === "web") {
+        if (!outputUrl) {
+          Alert.alert("Błąd", "Brak URL do wygenerowanego obrazka.");
+          return;
+        }
+
+        const fileName = `generation-${typeof id === "string" ? id : "unknown"}.png`;
+
+        try {
+          const res = await fetch(outputUrl);
+          if (!res.ok) {
+            throw new Error(`Download failed: HTTP ${res.status}`);
+          }
+          const blob = await res.blob();
+          const href = URL.createObjectURL(blob);
+
+          const a = document.createElement("a");
+          a.href = href;
+          a.download = fileName;
+          a.rel = "noopener";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+
+          setTimeout(() => URL.revokeObjectURL(href), 1000);
+
+          Alert.alert("Gotowe", "Pobieranie rozpoczęte.");
+        } catch (downloadErr) {
+          console.warn("Web download failed; opening URL instead", downloadErr);
+          window.open(outputUrl, "_blank", "noopener,noreferrer");
+          Alert.alert("Info", "Otworzyłem obraz w nowej karcie. Tam możesz go zapisać.");
+        }
+        return;
+      }
+
       const permission = await MediaLibrary.requestPermissionsAsync();
       if (!permission.granted) {
         Alert.alert("Brak uprawnień", "Aby zapisać obraz, zezwól na dostęp do galerii.");
@@ -105,6 +146,69 @@ export default function GenerationDetailScreen() {
 
   const handleShare = async () => {
     try {
+      if (Platform.OS === "web") {
+        if (!outputUrl) {
+          Alert.alert("Błąd", "Brak URL do wygenerowanego obrazka.");
+          return;
+        }
+
+        const nav = navigator as any;
+        const canShare = typeof nav?.share === "function";
+
+        // Prefer sharing as a File if supported; otherwise share the URL.
+        if (canShare) {
+          try {
+            const fileName = `generation-${typeof id === "string" ? id : "unknown"}.png`;
+
+            try {
+              const res = await fetch(outputUrl);
+              const blob = await res.blob();
+              const file = new File([blob], fileName, {
+                type: blob.type || "image/png",
+              });
+
+              if (typeof nav?.canShare === "function" && nav.canShare({ files: [file] })) {
+                await nav.share({
+                  files: [file],
+                  title: "Udostępnij wygenerowaną grafikę",
+                  text: "Wygenerowana grafika",
+                });
+              } else {
+                await nav.share({
+                  title: "Udostępnij wygenerowaną grafikę",
+                  text: "Link do grafiki",
+                  url: outputUrl,
+                });
+              }
+            } catch (fileShareErr) {
+              console.warn("Web file share failed; sharing URL instead", fileShareErr);
+              await nav.share({
+                title: "Udostępnij wygenerowaną grafikę",
+                text: "Link do grafiki",
+                url: outputUrl,
+              });
+            }
+
+            Alert.alert("Info", "Zamknięto okno udostępniania.");
+            return;
+          } catch (shareErr) {
+            console.warn("Web share failed, falling back to clipboard", shareErr);
+          }
+        }
+
+        // Fallback: copy URL to clipboard
+        try {
+          await navigator.clipboard?.writeText(outputUrl);
+          Alert.alert("Gotowe", "Skopiowano link do schowka.");
+        } catch {
+          Alert.alert(
+            "Info",
+            `Udostępnianie na web nie jest dostępne. Skopiuj link ręcznie:\n\n${outputUrl}`
+          );
+        }
+        return;
+      }
+
       const available = await Sharing.isAvailableAsync();
       if (!available) {
         Alert.alert("Info", "Udostępnianie nie jest obsługiwane na tym urządzeniu.");
@@ -115,8 +219,6 @@ export default function GenerationDetailScreen() {
         mimeType: "image/png",
         dialogTitle: "Udostępnij wygenerowaną grafikę",
       });
-      // Expo Sharing API does not reliably indicate whether the user completed or cancelled sharing.
-      // We show a neutral confirmation that the sheet was displayed and closed.
       Alert.alert("Info", "Zamknięto okno udostępniania.");
     } catch (err) {
       console.error("Failed to share image", err);
@@ -154,7 +256,6 @@ export default function GenerationDetailScreen() {
 
   return (
     <Screen padding={16} contentContainerStyle={{ gap: 14 }}>
-      {/* Nagłówek */}
       <View
         style={{
           flexDirection: "row",
@@ -181,7 +282,6 @@ export default function GenerationDetailScreen() {
         </Text>
       </View>
 
-      {/* Podgląd obrazka */}
       <View
         style={{
           borderRadius: 24,
@@ -223,7 +323,6 @@ export default function GenerationDetailScreen() {
         </View>
       </View>
 
-      {/* Meta informacje */}
       <View style={{ gap: 4, marginBottom: 24 }}>
         <Text style={{ color: colors.text, fontSize: 14 }}>
           Styl:{" "}
@@ -237,7 +336,6 @@ export default function GenerationDetailScreen() {
         </Text>
       </View>
 
-      {/* Akcje */}
       <View style={{ gap: 12, marginBottom: 16 }}>
         <Button
           title="Pobierz / Zapisz"
