@@ -10,7 +10,8 @@ function parseBoolEnv(value: string | undefined): boolean | undefined {
 }
 
 export const USE_EMULATORS: boolean =
-  parseBoolEnv(process.env.EXPO_PUBLIC_USE_EMULATORS) ?? __DEV__;
+
+  parseBoolEnv(process.env.EXPO_PUBLIC_USE_EMULATORS) ?? false;
 
 /**
  * Returns a host that the app (phone/simulator) can reach.

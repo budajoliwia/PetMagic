@@ -21,7 +21,7 @@ Monorepo z aplikacją mobilną (Expo/React Native) oraz backendem (Firebase Clou
 ### Mobile (`mobile/.env`)
 Skopiuj `mobile/env.example` → `mobile/.env` i uzupełnij:
 - `EXPO_PUBLIC_FIREBASE_*` (z Firebase Console → Project settings → Web app)
-- `EXPO_PUBLIC_USE_EMULATORS` i opcjonalnie `EXPO_PUBLIC_EMULATOR_HOST` (tylko do pracy na emulatorach)
+- `EXPO_PUBLIC_USE_EMULATORS=1` i opcjonalnie `EXPO_PUBLIC_EMULATOR_HOST` (tylko jeśli używasz Firebase Emulator Suite)
 
 ### Functions (`functions/.env.local`)
 Skopiuj `functions/env.local.template` → `functions/.env.local` i ustaw:
@@ -47,6 +47,8 @@ npm run mobile
 ```
 
 Jeśli uruchamiasz na **fizycznym urządzeniu** i używasz emulatorów, ustaw `EXPO_PUBLIC_EMULATOR_HOST` na IP komputera w LAN (pokazywane przez Expo jako `exp://<IP>:8081`).
+
+Jeśli **nie** uruchamiasz Emulator Suite, ustaw `EXPO_PUBLIC_USE_EMULATORS=0` (inaczej aplikacja będzie próbowała łączyć się z `http://<host>:9099` i Auth może zwracać `auth/network-request-failed`).
 
 ## Deploy (Firebase)
 1. Ustaw sekret OpenAI (pierwszy raz):
